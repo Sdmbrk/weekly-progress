@@ -1,0 +1,2393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MEP Progress Report Builder</title>
+<style>
+:root{
+  --teal:#12414E; --teal2:#2B5764; --slate:#5D7F89; --muted:#93AAB1;
+  --terra:#CB5F33; --gold:#C08A21; --chart:#0E7C8B; --green:#2E8B6F; --red:#A32E20;
+  --forest:#17503C; --sand:#FBF6EC; --sandd:#E8DCC7;
+  --appbg:#EEF3F3; --panel:#FFFFFF; --line:#D6E0E0; --ink:#12414E;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--appbg); color:var(--ink); font-size:14px;
+  display:flex; flex-direction:column;
+}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+
+/* ---------- top bar ---------- */
+header{
+  display:flex;align-items:center;gap:16px;
+  padding:10px 18px;background:var(--teal);color:#fff;flex:0 0 auto;
+}
+header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.2px}
+header .proj{font-size:12.5px;color:#A8C4CB;margin-left:2px}
+header .spacer{flex:1}
+.btn{
+  border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;
+  padding:7px 13px;border-radius:5px;font-size:13px;
+}
+.btn:hover{background:rgba(255,255,255,.18)}
+.btn.primary{background:var(--terra);border-color:var(--terra)}
+.btn.primary:hover{background:#b7522a}
+.libchip{font-size:12px;color:#A8C4CB;border:1px solid rgba(255,255,255,.25);
+  padding:5px 10px;border-radius:12px;white-space:nowrap}
+.libchip.bad{color:#FFD9CE;border-color:#E08A6E}
+.libchip.ok{color:#B7E0D2;border-color:rgba(255,255,255,.25)}
+.btn:focus-visible,.tab:focus-visible,.navitem:focus-visible{outline:2px solid #fff;outline-offset:2px}
+
+/* ---------- tabs ---------- */
+.tabs{display:flex;gap:2px;background:#0E3742;padding:0 18px;flex:0 0 auto}
+.tab{
+  background:none;border:0;color:#9DBCC4;padding:9px 16px;font-size:13px;
+  border-bottom:2px solid transparent;
+}
+.tab.on{color:#fff;border-bottom-color:var(--terra)}
+
+/* ---------- layout ---------- */
+main{flex:1;display:flex;min-height:0}
+nav{
+  width:216px;flex:0 0 216px;background:#fff;border-right:1px solid var(--line);
+  overflow:auto;padding:10px 0;
+}
+.navitem{
+  display:block;width:100%;text-align:left;background:none;border:0;
+  padding:8px 16px;font-size:13px;color:var(--teal2);border-left:3px solid transparent;
+}
+.navitem:hover{background:#F3F8F8}
+.navitem.on{background:#EAF3F3;border-left-color:var(--terra);font-weight:600;color:var(--teal)}
+.navhead{padding:12px 16px 5px;font-size:11px;color:var(--muted);font-weight:600}
+
+.work{flex:1;overflow:auto;padding:22px 26px 60px}
+.sec{max-width:1080px}
+.sec h2{font-size:19px;margin:0 0 3px}
+.sec .hint{color:var(--slate);margin:0 0 18px;font-size:13px;max-width:70ch}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:16px;margin-bottom:18px}
+.card h3{margin:0 0 12px;font-size:14px;color:var(--teal)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+label.f{display:block;font-size:12px;color:var(--slate);margin-bottom:4px}
+input[type=text],input[type=number],input[type=date],select,textarea{
+  width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:5px;background:#fff;
+}
+textarea{min-height:78px;resize:vertical;line-height:1.5}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--chart);outline-offset:-1px;border-color:var(--chart)}
+
+table.ed{width:100%;border-collapse:collapse;font-size:13px}
+table.ed th{
+  text-align:left;background:#F2F7F7;color:var(--teal);font-weight:600;
+  padding:7px 8px;border:1px solid var(--line);white-space:nowrap;
+}
+table.ed td{border:1px solid var(--line);padding:0}
+table.ed td input,table.ed td select{border:0;border-radius:0;padding:7px 8px;background:transparent}
+.readout{padding:7px 9px;border:1px solid var(--line);border-radius:5px;background:#F7FBFB;
+  color:var(--chart);font-weight:700}
+table.ed td.calc{padding:7px 8px;color:var(--chart);font-weight:600;background:#F7FBFB;text-align:center}
+table.ed td.act{width:34px;text-align:center;background:#FAFCFC}
+.iconbtn{border:0;background:none;color:var(--red);font-size:15px;line-height:1;padding:4px 6px;border-radius:4px}
+.iconbtn:hover{background:#FBEDEB}
+.rowbtns{margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sbtn{border:1px solid var(--line);background:#fff;color:var(--teal);padding:6px 12px;border-radius:5px;font-size:13px}
+.sbtn:hover{background:#F2F7F7}
+.tot{margin-left:auto;color:var(--slate);font-size:12.5px}
+
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.swatch{display:flex;flex-direction:column;gap:8px;align-items:flex-start;background:#fff;
+  border:1px solid var(--line);border-radius:7px;padding:11px 12px;text-align:left}
+.swatch:hover{border-color:var(--chart)}
+.swatch.on{border-color:var(--terra);box-shadow:0 0 0 2px rgba(203,95,51,.16)}
+.chips{display:flex;gap:4px}
+.chips i{width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,.08)}
+.swname{font-size:13px;color:var(--teal);font-weight:600}
+.colrow{display:flex;gap:8px;align-items:center}
+.colrow input[type=color]{width:44px;height:34px;padding:2px;border:1px solid var(--line);border-radius:5px;background:#fff}
+.colrow .hex{flex:1;font-family:ui-monospace,Consolas,monospace;text-transform:uppercase}
+.motifprev{margin-top:14px;height:150px;border:1px solid var(--line);border-radius:7px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center}
+.motifprev img{width:100%;height:100%;object-fit:cover}
+.pghdr{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.pgtag{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
+  border-radius:50%;background:var(--sand);border:1px solid var(--sandd);color:var(--terra);font-size:12px;font-weight:700}
+.sbtn.mv{padding:5px 11px;line-height:1.1}
+.pgname{width:190px;font-weight:600}
+.tog{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--slate);white-space:nowrap}
+.tog input{width:15px;height:15px;accent-color:var(--terra)}
+.card.pgoff{opacity:.6;background:#F7FAFA}
+.card.pgoff .pgtag{background:#EDF2F2;border-color:var(--line);color:var(--muted)}
+.navitem.off{color:var(--muted)}
+.offtag{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:1px 6px;margin-left:7px}
+.sbtn:disabled{opacity:.35;cursor:default}
+.throw{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.thcode{width:170px;font-weight:600}
+.thtot{margin-left:auto;font-size:12.5px;font-weight:600;color:var(--terra)}
+.logobox{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.logoprev{
+  width:150px;height:96px;border:1px dashed var(--line);border-radius:6px;background:#fff;
+  display:flex;align-items:center;justify-content:center;padding:8px;
+}
+.logoprev img{max-width:100%;max-height:100%}
+.logoprev span{color:var(--muted);font-size:12px}
+
+/* ---------- preview ---------- */
+.pvbar{display:flex;gap:10px;align-items:center;padding:10px 26px;background:#fff;border-bottom:1px solid var(--line)}
+.pvwrap{padding:22px 26px 60px;overflow:auto;flex:1;background:#E4EBEB}
+.pgshell{margin:0 auto 22px;width:1122.24px;transform-origin:top center}
+.page{
+  width:1122.24px;height:793.92px;background:#fff;position:relative;overflow:hidden;
+  box-shadow:0 2px 14px rgba(18,65,78,.16);
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;color:var(--teal2);
+}
+.page .art{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.page .inner{position:absolute;inset:0;padding:44px 53px}
+.eyebrow{font-size:11px;font-weight:700;color:var(--terra);letter-spacing:1.6px;text-transform:uppercase}
+.ptitle{font-family:Cambria,Georgia,serif;font-size:30px;font-weight:700;color:var(--teal);margin:5px 0 0}
+.pgno{
+  position:absolute;top:40px;right:50px;width:44px;height:44px;border-radius:50%;
+  background:var(--sand);border:1px solid var(--sandd);color:var(--terra);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+}
+.pfoot{position:absolute;left:53px;bottom:26px;font-size:9.5px;color:var(--muted)}
+.kcards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:26px}
+.kcard{background:var(--sand);border:1px solid var(--sandd);border-radius:6px;padding:16px 18px}
+.kcard .big{font-family:Cambria,Georgia,serif;font-size:38px;font-weight:700;line-height:1.05}
+.kcard .lbl{font-size:12px;font-weight:700;margin-top:8px}
+.kcard .sub{font-size:10.5px;color:var(--slate);font-style:italic;margin-top:3px}
+.wcard{background:#fff;border:1px solid var(--sandd);border-radius:6px;padding:16px 18px}
+.rt{width:100%;border-collapse:collapse;font-size:9.5px}
+.rt th{background:var(--teal);color:#fff;text-align:left;padding:5px 8px;font-size:10px}
+.rt td{border:1px solid var(--sandd);padding:5px 8px}
+.rt tr:nth-child(even) td{background:var(--sand)}
+.pill{display:inline-block;padding:3px 12px;border-radius:11px;color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.6px}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:middle}
+.bars div.bar{height:34px;background:var(--chart);border-radius:2px}
+.msg{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--teal);color:#fff;
+  padding:10px 18px;border-radius:6px;font-size:13px;box-shadow:0 4px 18px rgba(0,0,0,.22);z-index:99}
+.hidden{display:none}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MEP Progress Report Builder</h1>
+  <span class="proj" id="projTag"></span>
+  <span class="spacer"></span>
+  <span class="libchip" id="libChip">Loading libraries…</span>
+  <button class="btn" id="btnSaveJson">Save project</button>
+  <button class="btn" id="btnLoadJson">Open project</button>
+  <button class="btn" id="btnXlsxOut">Export Excel</button>
+  <button class="btn" id="btnXlsxIn">Import Excel</button>
+  <button class="btn primary" id="btnPptx">Download PowerPoint</button>
+  <button class="btn primary" id="btnPdf">Download PDF</button>
+</header>
+
+<div class="tabs">
+  <button class="tab on" data-tab="edit">Edit report</button>
+  <button class="tab" data-tab="preview">Preview</button>
+</div>
+
+<main>
+  <nav id="nav"></nav>
+  <div class="work" id="work"></div>
+  <div class="work hidden" id="pv" style="padding:0;display:none;flex-direction:column">
+    <div class="pvbar">
+      <span>Zoom</span>
+      <input type="range" id="zoom" min="35" max="110" value="62" style="width:180px">
+      <span id="zoomv" style="color:var(--slate)">62%</span>
+      <span style="color:var(--slate);margin-left:14px">11 pages · A4 landscape</span>
+    </div>
+    <div class="pvwrap" id="pages"></div>
+  </div>
+</main>
+
+<input type="file" id="fileJson" accept=".json" class="hidden">
+<input type="file" id="fileXlsx" accept=".xlsx,.xls" class="hidden">
+<input type="file" id="fileLogo" accept="image/*" class="hidden">
+
+<script>
+"use strict";
+
+/* =====================================================================
+   0. LIBRARY LOADER — tries three CDNs per library
+   ===================================================================== */
+var LIBS=[
+  {g:"PptxGenJS",  label:"PowerPoint", paths:["pptxgenjs@3.12.0/dist/pptxgen.bundle.js",
+     "https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"]},
+  {g:"XLSX",       label:"Excel",      paths:["xlsx@0.18.5/dist/xlsx.full.min.js",
+     "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"]},
+  {g:"html2canvas",label:"PDF render", paths:["html2canvas@1.4.1/dist/html2canvas.min.js",
+     "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"]},
+  {g:"jspdf",      label:"PDF writer", paths:["jspdf@2.5.1/dist/jspdf.umd.min.js",
+     "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"]}
+];
+var LIB_STATE={};
+function urlsFor(lib){
+  var out=[];
+  lib.paths.forEach(function(x){
+    if(x.indexOf("http")===0){out.push(x);}
+    else{out.push("https://cdn.jsdelivr.net/npm/"+x);out.push("https://unpkg.com/"+x);}
+  });
+  return out;
+}
+function loadScript(url){
+  return new Promise(function(res,rej){
+    var el=document.createElement("script");
+    el.src=url; el.async=false;
+    el.onload=function(){res();};
+    el.onerror=function(){rej(new Error(url));};
+    document.head.appendChild(el);
+  });
+}
+function ensureLib(name){
+  if(window[name])return Promise.resolve(true);
+  if(LIB_STATE[name]&&LIB_STATE[name].p)return LIB_STATE[name].p;
+  var lib=LIBS.filter(function(l){return l.g===name;})[0];
+  if(!lib)return Promise.reject(new Error(name));
+  var urls=urlsFor(lib),i=0;
+  var p=new Promise(function(res,rej){
+    (function next(){
+      if(window[name])return res(true);
+      if(i>=urls.length)return rej(new Error(lib.label));
+      loadScript(urls[i++]).then(function(){
+        window[name]?res(true):next();
+      },next);
+    })();
+  });
+  LIB_STATE[name]={p:p};
+  p.catch(function(){ LIB_STATE[name]=null; });   // allow a retry once back online
+  return p;
+}
+function chip(){
+  var el=document.getElementById("libChip"); if(!el)return;
+  var ready=LIBS.filter(function(l){return !!window[l.g];});
+  if(ready.length===LIBS.length){el.textContent="All exports ready";el.className="libchip ok";return;}
+  var miss=LIBS.filter(function(l){return !window[l.g];}).map(function(l){return l.label;});
+  el.textContent="Unavailable: "+miss.join(", ");
+  el.className="libchip bad";
+  el.title="These need an internet connection the first time you open the app.";
+}
+function preloadLibs(){
+  var done=0;
+  LIBS.forEach(function(l){
+    ensureLib(l.g).catch(function(){}).then(function(){ if(++done===LIBS.length)chip(); else chip(); });
+  });
+}
+
+/* =====================================================================
+   THEME — palettes, background motifs, and the live colour map
+   ===================================================================== */
+var THEMES=[
+  {id:"mediterranean",name:"Mediterranean",
+   c:{ink:"12414E",body:"2B5764",slate:"5D7F89",muted:"93AAB1",accent:"CB5F33",accent2:"C08A21",
+      chart:"0E7C8B",good:"2E8B6F",bad:"A32E20",cardBg:"FBF6EC",cardLine:"E8DCC7",
+      pageBg:"FFFFFF",coverBg:"FFFFFF",coverInk:"17503C",motifColor:"A6C3C1"}},
+  {id:"charcoal",name:"Charcoal & Amber",
+   c:{ink:"23262B",body:"34383F",slate:"5F6874",muted:"8A929C",accent:"C2710C",accent2:"9A6B12",
+      chart:"3E5C6B",good:"3E7C4F",bad:"AC3E29",cardBg:"F3EFE7",cardLine:"E2DACA",
+      pageBg:"FFFFFF",coverBg:"F7F5F0",coverInk:"23262B",motifColor:"CFC6B4"}},
+  {id:"navy",name:"Navy & Copper",
+   c:{ink:"14304F",body:"2A4A6B",slate:"5C7291",muted:"9AABC2",accent:"B4653A",accent2:"9C7A2E",
+      chart:"2C5E8F",good:"2F7D62",bad:"9E3324",cardBg:"F5F8FB",cardLine:"DDE6EF",
+      pageBg:"FFFFFF",coverBg:"F7FAFC",coverInk:"14304F",motifColor:"B8CBDD"}},
+  {id:"forest",name:"Forest & Moss",
+   c:{ink:"1C4433",body:"2F5B47",slate:"5E7F6E",muted:"9DB3A6",accent:"C06A2E",accent2:"A8892A",
+      chart:"2E7D5B",good:"3F8F5F",bad:"A33B2A",cardBg:"F6FAF6",cardLine:"DCE8DE",
+      pageBg:"FFFFFF",coverBg:"F7FBF8",coverInk:"1C4433",motifColor:"B4CDBC"}},
+  {id:"desert",name:"Desert Sand",
+   c:{ink:"4A3520",body:"6B4E30",slate:"8A6F4E",muted:"B39B78",accent:"B5622B",accent2:"9C7C1E",
+      chart:"A07C3E",good:"5F8A4A",bad:"9E3B24",cardBg:"FCF7EE",cardLine:"E9DCC5",
+      pageBg:"FFFFFF",coverBg:"FDFAF3",coverInk:"4A3520",motifColor:"D8C7A6"}},
+  {id:"slate",name:"Slate & Sky",
+   c:{ink:"27333D",body:"3D4C58",slate:"667887",muted:"9FAFBC",accent:"2F7FA8",accent2:"7A8B99",
+      chart:"3E86AE",good:"3B8B72",bad:"A34434",cardBg:"F5F8FA",cardLine:"DEE7ED",
+      pageBg:"FFFFFF",coverBg:"F8FBFC",coverInk:"27333D",motifColor:"BFD2DE"}},
+  {id:"plum",name:"Plum & Clay",
+   c:{ink:"3E2540",body:"573A58",slate:"7C6480",muted:"AC9BAF",accent:"B4553F",accent2:"96702F",
+      chart:"70487A",good:"3F7F63",bad:"9B3A2E",cardBg:"FAF6FA",cardLine:"E7DCE8",
+      pageBg:"FFFFFF",coverBg:"FBF8FB",coverInk:"3E2540",motifColor:"CFBBD2"}},
+  {id:"mono",name:"Monochrome",
+   c:{ink:"1F1F1F",body:"3A3A3A",slate:"6B6B6B",muted:"9E9E9E",accent:"1F1F1F",accent2:"6B6B6B",
+      chart:"4A4A4A",good:"3D6B4C",bad:"8C3428",cardBg:"F6F6F6",cardLine:"E1E1E1",
+      pageBg:"FFFFFF",coverBg:"FFFFFF",coverInk:"1F1F1F",motifColor:"D4D4D4"}}
+];
+function themeById(id){return THEMES.filter(function(t){return t.id===id;})[0]||THEMES[0];}
+
+var MOTIFS=[
+  {id:"mep",       name:"MEP services (duct, pipe, conduit)"},
+  {id:"ducts",     name:"Duct runs"},
+  {id:"pipes",     name:"Pipework and valves"},
+  {id:"circuit",   name:"Electrical circuit"},
+  {id:"blueprint", name:"Blueprint grid with dimensions"},
+  {id:"grid",      name:"Fine engineering grid"},
+  {id:"arcs",      name:"Soft arcs"},
+  {id:"contour",   name:"Contour lines"},
+  {id:"none",      name:"No background object"}
+];
+function motifSVG(kind,col){
+  col="#"+(col||"CCCCCC");
+  var open='<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1131" viewBox="0 0 1600 900" '+
+           'preserveAspectRatio="xMidYMid slice"><g fill="none" stroke="'+col+'" stroke-width="4" '+
+           'stroke-linecap="round" stroke-linejoin="round">';
+  var body="";
+  if(kind==="none")return '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1131"></svg>';
+  if(kind==="mep"){
+    body='<g transform="rotate(-13 1050 450)">'+
+      '<path d="M620 120 H1580"/><path d="M620 236 H1580"/>'+
+      '<path d="M880 108 V248"/><path d="M896 108 V248"/><path d="M1180 108 V248"/><path d="M1196 108 V248"/>'+
+      '<path d="M1470 108 V248"/><path d="M1486 108 V248"/>'+
+      '<path d="M660 452 H1236 a44 44 0 0 1 44 44 V900"/><path d="M660 516 H1192 a44 44 0 0 1 44 44 V900"/>'+
+      '<circle cx="900" cy="484" r="52"/><path d="M864 448 L936 520"/><path d="M936 448 L864 520"/>'+
+      '<path d="M600 706 H1000 L1104 822 H1580"/>'+
+      '<circle cx="1000" cy="706" r="13" fill="'+col+'"/><circle cx="1104" cy="822" r="13" fill="'+col+'"/>'+
+      '<path d="M1330 758 l-34 52 h26 l-22 48"/></g>';
+  }else if(kind==="ducts"){
+    body='<g transform="rotate(-10 1000 450)">';
+    [120,380,640].forEach(function(y){
+      body+='<path d="M560 '+y+' H1620"/><path d="M560 '+(y+110)+' H1620"/>';
+      for(var x=760;x<1600;x+=250){
+        body+='<path d="M'+x+' '+(y-14)+' V'+(y+124)+'"/><path d="M'+(x+16)+' '+(y-14)+' V'+(y+124)+'"/>';
+      }
+    });
+    body+='</g>';
+  }else if(kind==="pipes"){
+    body='<g transform="rotate(-8 1000 450)">'+
+      '<path d="M600 240 H1140 a50 50 0 0 1 50 50 V720 a50 50 0 0 0 50 50 H1620"/>'+
+      '<path d="M600 310 H1090 a50 50 0 0 1 50 50 V690 a50 50 0 0 0 50 50 H1620"/>'+
+      '<circle cx="860" cy="275" r="54"/><path d="M822 237 L898 313"/><path d="M898 237 L822 313"/>'+
+      '<circle cx="1215" cy="560" r="46"/><path d="M1181 526 L1249 594"/><path d="M1249 526 L1181 594"/>'+
+      '<path d="M700 520 H980 a44 44 0 0 1 44 44 V880"/>'+
+      '<path d="M700 584 H936 a44 44 0 0 1 44 44 V880"/></g>';
+  }else if(kind==="circuit"){
+    body='<g>'+
+      '<path d="M520 180 H980 V420 H1420"/><path d="M700 180 V560 H1180 V820"/>'+
+      '<path d="M1420 420 V700 H900"/><path d="M980 620 H1520"/>'+
+      '<circle cx="980" cy="180" r="14" fill="'+col+'"/><circle cx="700" cy="560" r="14" fill="'+col+'"/>'+
+      '<circle cx="1420" cy="420" r="14" fill="'+col+'"/><circle cx="1180" cy="620" r="14" fill="'+col+'"/>'+
+      '<rect x="1040" y="392" width="96" height="56"/><rect x="820" y="532" width="96" height="56"/>'+
+      '<path d="M1300 740 l-38 58 h30 l-26 54"/></g>';
+  }else if(kind==="blueprint"){
+    body='<g stroke-width="2">';
+    for(var gx=0;gx<=1600;gx+=80)body+='<path d="M'+gx+' 0 V900"/>';
+    for(var gy=0;gy<=900;gy+=80)body+='<path d="M0 '+gy+' H1600"/>';
+    body+='</g><g stroke-width="4">'+
+      '<path d="M760 220 H1360"/><path d="M760 205 V235"/><path d="M1360 205 V235"/>'+
+      '<path d="M780 232 L760 220 L780 208"/><path d="M1340 232 L1360 220 L1340 208"/>'+
+      '<path d="M1440 300 V760"/><path d="M1425 300 H1455"/><path d="M1425 760 H1455"/>'+
+      '<rect x="820" y="360" width="420" height="300"/></g>';
+  }else if(kind==="grid"){
+    body='<g stroke-width="2">';
+    for(var ix=0;ix<=1600;ix+=48)body+='<path d="M'+ix+' 0 V900"/>';
+    for(var iy=0;iy<=900;iy+=48)body+='<path d="M0 '+iy+' H1600"/>';
+    body+='</g><g stroke-width="4">';
+    for(var jx=0;jx<=1600;jx+=240)body+='<path d="M'+jx+' 0 V900"/>';
+    for(var jy=0;jy<=900;jy+=240)body+='<path d="M0 '+jy+' H1600"/>';
+    body+='</g>';
+  }else if(kind==="arcs"){
+    body='<g>';
+    for(var r=180;r<=1100;r+=110)body+='<circle cx="1500" cy="880" r="'+r+'"/>';
+    body+='</g>';
+  }else if(kind==="contour"){
+    body='<g stroke-width="3">';
+    for(var k=0;k<7;k++){
+      var o=k*46;
+      body+='<path d="M'+(520+o)+' 900 C '+(700+o)+' '+(640-o*0.6)+', '+(1000-o)+' '+(700-o*0.5)+', '+
+            (1180+o)+' '+(420-o*0.7)+' S '+(1460+o)+' '+(200-o*0.4)+', 1620 '+(120-o*0.3)+'"/>';
+    }
+    body+='</g>';
+  }
+  return open+body+"</g></svg>";
+}
+
+function defaultTheme(){
+  var t=themeById("mediterranean").c, o={preset:"mediterranean",motif:"mep",motifOpacity:48};
+  for(var k in t)o[k]=t[k];
+  return o;
+}
+function applyTheme(){
+  var t=S.theme||defaultTheme();
+  C.teal=t.ink; C.teal2=t.body; C.slate=t.slate; C.muted=t.muted;
+  C.terra=t.accent; C.gold=t.accent2; C.chart=t.chart;
+  C.green=t.good; C.red=t.bad;
+  C.sand=t.cardBg; C.sandd=t.cardLine;
+  C.forest=t.coverInk; C.page=t.pageBg; C.paper=t.coverBg;
+  C.white="FFFFFF";
+}
+function usePreset(id){
+  var pre=themeById(id), t=S.theme||defaultTheme();
+  for(var k in pre.c)t[k]=pre.c[k];
+  t.preset=id; S.theme=t; applyTheme();
+}
+
+/* =====================================================================
+   1. DEFAULT DATA
+   ===================================================================== */
+function defaults(){return{
+  theme:defaultTheme(),
+  meta:{
+    projectName:"Taormina Village-01",
+    companyName:"Modun Gulf Building Contracting LLC",
+    reportTitle:"Weekly MEP Progress Report",
+    weekNo:"1", periodFrom:"2026-08-29", periodTo:"2026-09-04",
+    issueDate:todayISO(),
+    issuedBy:"MEP Department",
+    location:"Dubailand, UAE",
+    villas:530, townhouses:7,
+    disciplines:"Electrical · Plumbing · HVAC · LPG",
+    nextReport:"2026-09-07",
+    currency:"AED",
+    logo:""
+  },
+  ths:[
+    {th:"TH-01",blocks:[{block:"B1",villas:16},{block:"B2",villas:16},{block:"B3",villas:16},{block:"B4",villas:16},{block:"B5",villas:16}]},
+    {th:"TH-02",blocks:[{block:"B1",villas:16},{block:"B2",villas:16},{block:"B3",villas:16},{block:"B4",villas:16},{block:"B5",villas:16}]},
+    {th:"TH-03",blocks:[{block:"B1",villas:16},{block:"B2",villas:16},{block:"B3",villas:16},{block:"B4",villas:16},{block:"B5",villas:16}]},
+    {th:"TH-04",blocks:[{block:"B1",villas:16},{block:"B2",villas:16},{block:"B3",villas:16},{block:"B4",villas:16},{block:"B5",villas:16}]},
+    {th:"TH-05",blocks:[{block:"B1",villas:16},{block:"B2",villas:16},{block:"B3",villas:16},{block:"B4",villas:16},{block:"B5",villas:16}]},
+    {th:"TH-06",blocks:[{block:"B1",villas:16},{block:"B2",villas:16},{block:"B3",villas:16},{block:"B4",villas:16},{block:"B5",villas:16}]},
+    {th:"TH-07",blocks:[{block:"B1",villas:17},{block:"B2",villas:17},{block:"B3",villas:16}]}
+  ],
+  kpi:{source:"trades",actual:59.1,planned:61.5,weekly:1.8},
+  curve:[
+    {week:"Jul W2",plan:45.0,actual:44.4},{week:"Jul W3",plan:47.4,actual:46.6},
+    {week:"Jul W4",plan:49.9,actual:48.7},{week:"Aug W1",plan:52.3,actual:50.9},
+    {week:"Aug W2",plan:54.7,actual:53.2},{week:"Aug W3",plan:57.1,actual:55.4},
+    {week:"Aug W4",plan:59.3,actual:57.3},{week:"Sep W1",plan:61.5,actual:59.1}
+  ],
+  curveNote:"Recovery of the 2.4% gap is targeted over the next four weeks at +2.6% per week.",
+  trades:[
+    {name:"Electrical",pct:64.2,move:"+2.1",note:"2nd fix leading all MEP trades"},
+    {name:"Plumbing",pct:61.8,move:"+1.9",note:"Awaiting UPVC stack delivery"},
+    {name:"HVAC",pct:55.3,move:"+1.2",note:"FCU supply is the constraint"},
+    {name:"LPG",pct:41.6,move:"+0.8",note:"Subcontractor approval pending"}
+  ],
+  stages:[
+    {name:"Underground Works",pct:92.4,tone:"green",note:""},
+    {name:"Slab Works",pct:84.1,tone:"green",note:""},
+    {name:"1st Fix",pct:71.6,tone:"green",note:""},
+    {name:"Riser Works",pct:63.8,tone:"accent",note:""},
+    {name:"High Level Works",pct:55.2,tone:"accent",note:""},
+    {name:"Elec Floor Piping",pct:48.0,tone:"accent",note:""},
+    {name:"Ext Works",pct:22.5,tone:"slate",note:""},
+    {name:"LPG Works",pct:41.6,tone:"muted",note:""}
+  ],
+  stageNote:"Percentages show cumulative MEP completion per work category.",
+  ipt:[
+    {activity:"Electrical 2nd fix",th:"TH-14 – TH-16",villas:24,plan:95,pct:92,value:486000,remarks:"On track — ready for inspection"},
+    {activity:"Conduiting & back boxes",th:"TH-27 – TH-28",villas:26,plan:60,pct:54,value:289400,remarks:"Slab conduit ahead of pour"},
+    {activity:"Cable pulling & DB termination",th:"TH-17 – TH-19",villas:22,plan:72,pct:61,value:418700,remarks:"Crew short by 12 nos."},
+    {activity:"Earthing & lightning protection",th:"TH-14 – TH-16",villas:24,plan:90,pct:88,value:132500,remarks:"Pit testing scheduled 09 Sep"},
+    {activity:"Light fittings & accessories",th:"TH-08",villas:14,plan:55,pct:42,value:196300,remarks:"Awaiting fitting delivery"},
+    {activity:"Plumbing 1st fix",th:"TH-21 – TH-22",villas:18,plan:80,pct:76,value:324800,remarks:"UPVC stack delivery awaited"},
+    {activity:"Drainage & soil stack fixing",th:"TH-20",villas:16,plan:74,pct:71,value:214600,remarks:"On track"},
+    {activity:"Water tank & pump set install",th:"TH-04",villas:12,plan:45,pct:35,value:168900,remarks:"Pump submittal under review"},
+    {activity:"HVAC ducting & FCU set",th:"TH-09 – TH-11",villas:22,plan:92,pct:84,value:612500,remarks:"40 FCUs outstanding"},
+    {activity:"Duct insulation & cladding",th:"TH-09 – TH-10",villas:18,plan:62,pct:57,value:243100,remarks:"Follows FCU set"},
+    {activity:"Chilled water piping & insulation",th:"TH-12 – TH-13",villas:20,plan:70,pct:68,value:352600,remarks:"On track"},
+    {activity:"Fresh air & exhaust fan fixing",th:"TH-11",villas:12,plan:50,pct:46,value:121700,remarks:"On track"},
+    {activity:"LPG piping & testing",th:"TH-05 – TH-07",villas:16,plan:62,pct:48,value:176400,remarks:"Subcontractor approval pending"},
+    {activity:"Testing & commissioning — MEP",th:"TH-01 – TH-02",villas:18,plan:95,pct:93,value:187400,remarks:"DEWA witness pending"},
+    {activity:"MEP snagging & handover prep",th:"TH-01 – TH-03",villas:28,plan:98,pct:97,value:241900,remarks:"Closed out this week"},
+    {activity:"Temporary power distribution",th:"TH-24 – TH-26",villas:0,plan:0,pct:64,value:96400,extra:true,remarks:"Client instruction 04 Sep"},
+    {activity:"Builders work openings — rework",th:"TH-09",villas:8,plan:0,pct:38,value:42800,extra:true,remarks:"Structural clash, VO pending"}
+  ],
+  costs:[
+    {party:"MGC Team",planned:165172,actual:31824},
+    {party:"Subcontractor",planned:40000,actual:10000},
+    {party:"Manpower Supplier",planned:0,actual:0}
+  ],
+  costNote:"Cost planned against actual spend to date, by supply party.",
+  iptCost:4500000,
+  concerns:[
+    {sev:"HIGH",title:"FCU & chilled-water accessory delivery",detail:"40 units short against TH-09–TH-11 second fix. Air-freight quote received; decision needed by 08 Sep to avoid a 12-day slip.",owner:"Procurement"},
+    {sev:"HIGH",title:"DEWA inspection backlog",detail:"TH-14–TH-16 energisation slot not yet confirmed. Three rows are inspection-ready and will idle if the slot slides past next week.",owner:"MEP Coordination"},
+    {sev:"MEDIUM",title:"Cable-pulling crew shortfall",detail:"12 nos. short on TH-17–TH-19 against the histogram, running 3 days behind. Redeployment from TH-30 proposed.",owner:"Electrical"},
+    {sev:"MEDIUM",title:"LPG subcontractor approval",detail:"Third-party approval pending with the authority; blocks testing on TH-05–TH-07. Submitted 21 Aug, no response.",owner:"QA / QC"},
+    {sev:"LOW",title:"Site access congestion — TH-24",detail:"Delivery vehicles queueing at the north gate during morning peak. Revised routing under trial this week.",owner:"Logistics"}
+  ],
+  procurement:[
+    {item:"FCU units (2 & 3 TR)",qty:"40 nos.",status:"Delayed",eta:"26 Sep (air: 11 Sep)",impact:"TH-09–TH-11 2nd fix — 12 days"},
+    {item:"UPVC soil & waste stacks",qty:"1,850 m",status:"In transit",eta:"09 Sep",impact:"TH-21–TH-22 1st fix — 4 days"},
+    {item:"Distribution boards (DB/SMDB)",qty:"96 sets",status:"Delivered",eta:"—",impact:"Nil"},
+    {item:"Sanitary ware — villa type A/B",qty:"212 sets",status:"Approved",eta:"18 Sep",impact:"Nil — ahead of need date"},
+    {item:"LPG copper tubing & regulators",qty:"2,400 m",status:"Awaiting approval",eta:"TBC",impact:"TH-05–TH-07 testing — open"},
+    {item:"Cable tray & containment",qty:"3,200 m",status:"Partial delivery",eta:"14 Sep",impact:"TH-17–TH-19 containment — 5 days"}
+  ],
+  procNote:"2 of 6 tracked packages are critical-path constrained. Air-freight of the FCU package is the single highest-leverage recovery action available this week.",
+  lookahead:[
+    {title:"Complete electrical 2nd fix",th:"TH-14 – TH-16",detail:"24 villas to 100% and released for DEWA inspection."},
+    {title:"Resume HVAC set-out",th:"TH-09 – TH-11",detail:"Subject to the FCU air-freight decision; ducting continues regardless."},
+    {title:"Start plumbing 1st fix",th:"TH-23",detail:"16 villas, contingent on the UPVC stack delivery landing 09 Sep."},
+    {title:"Redeploy cable-pulling crew",th:"TH-17 – TH-19",detail:"12 nos. moved from TH-30 to recover the 3-day slip."},
+    {title:"Handover documentation",th:"TH-01 – TH-03",detail:"Compile as-builts, test certificates and O&M for 28 villas."},
+    {title:"Start HVAC 1st fix",th:"TH-27 – TH-28",detail:"Duct set-out and sleeve fixing to begin 10 Sep."}
+  ],
+  lookNote:"Target for next week: +2.6%, bringing cumulative MEP completion to 61.7% and closing one third of the baseline gap.",
+  closing:{
+    headline:"MEP 59.1% complete, 2.4% behind — recoverable this month",
+    bullets:[
+      {text:"MEP handover of the TH-01–TH-03 cluster closed out on schedule; 84 villas now handed over."},
+      {text:"The baseline gap is driven by material supply, not productivity — attendance held at 96.2%."},
+      {text:"Two decisions this week (FCU air-freight, DEWA slot) determine whether the recovery holds."}
+    ]
+  },
+  pages:[
+    {key:"p1", type:"cover", name:"Cover", on:true, eyebrow:"", title:"Cover"},
+    {key:"p2", type:"exec", name:"Executive summary", on:true, eyebrow:"Executive summary", title:"Where the project stands this week"},
+    {key:"p5", type:"stages", name:"Main work categories", on:true, eyebrow:"Main work categories", title:"MEP Progress across the Work Categories"},
+    {key:"p3", type:"curve", name:"Progress curve", on:true, eyebrow:"Progress curve", title:"Cumulative progress against baseline"},
+    {key:"p4", type:"trades", name:"Discipline progress", on:true, eyebrow:"By discipline", title:"Cumulative MEP completion by trade"},
+    {key:"p6", type:"ipt", name:"IPT progress", on:true, eyebrow:"Activities completed", title:"IPT Progress"},
+    {key:"p6b",type:"iptchart", name:"IPT planned vs actual", on:true, eyebrow:"IPT progress", title:"IPT - Planned vs Actual"},
+    {key:"p7", type:"res", name:"Manpower cost", on:true, eyebrow:"Manpower cost", title:"MEP manpower {mon}-{year} IPT — Week {week}"},
+    {key:"p8", type:"risk", name:"Areas of concern", on:true, eyebrow:"Areas of concern", title:"Open issues and recovery actions"},
+    {key:"p9", type:"proc", name:"Procurement", on:true, eyebrow:"Procurement", title:"Material and submittal status"},
+    {key:"p10", type:"look", name:"Look ahead", on:true, eyebrow:"Look ahead", title:"Plan for the coming week"},
+    {key:"p11", type:"close", name:"Closing summary", on:true, eyebrow:"Summary", title:"Closing summary"}
+  ]
+};}
+
+var S = defaults();
+
+var PAGE_TYPES=[
+  {type:"cover", name:"Cover"},
+  {type:"exec",  name:"Executive summary"},
+  {type:"curve", name:"Progress curve"},
+  {type:"trades",name:"Discipline progress"},
+  {type:"stages",name:"MEP stage mix"},
+  {type:"ipt",   name:"IPT progress"},
+  {type:"iptchart",name:"IPT planned vs actual"},
+  {type:"res",   name:"Manpower cost"},
+  {type:"risk",  name:"Areas of concern"},
+  {type:"proc",  name:"Procurement"},
+  {type:"look",  name:"Look ahead"},
+  {type:"close", name:"Closing summary"},
+  {type:"text",  name:"Free text page"}
+];
+function typeName(t){var m=PAGE_TYPES.filter(function(x){return x.type===t;})[0];return m?m.name:t;}
+function newKey(){return "p"+Date.now().toString(36)+Math.floor(Math.random()*900+100);}
+function numbered(t){return t!=="cover"&&t!=="close";}
+function activePages(){return (S.pages||[]).filter(function(x){return x.on!==false;});}
+function pageByType(t){return (S.pages||[]).filter(function(x){return x.type===t;})[0];}
+function sectionLabel(id,fallback){
+  var pgm=pageByType(id);
+  return pgm?pgm.name:fallback;
+}
+
+/* =====================================================================
+   2. HELPERS
+   ===================================================================== */
+var C = {teal:"12414E",teal2:"2B5764",slate:"5D7F89",muted:"93AAB1",sand:"FBF6EC",
+  sandd:"E8DCC7",terra:"CB5F33",gold:"C08A21",chart:"0E7C8B",green:"2E8B6F",
+  red:"A32E20",forest:"17503C",white:"FFFFFF"};
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function num(v){var n=parseFloat(v);return isNaN(n)?0:n;}
+function money(n){return Number(n||0).toLocaleString("en-US");}
+function toast(t){var d=document.createElement("div");d.className="msg";d.textContent=t;
+  document.body.appendChild(d);setTimeout(function(){d.remove();},2600);}
+function thTotal(t){return (t.blocks||[]).reduce(function(a,b){return a+num(b.villas);},0);}
+function totalVillas(){return (S.ths||[]).reduce(function(a,t){return a+thTotal(t);},0);}
+function thCount(){return (S.ths||[]).length;}
+function blank(v){return v===undefined||v===null||String(v).trim()==="";}
+function scopeVillas(){return blank(S.meta.villas)?totalVillas():num(S.meta.villas);}
+function scopeTH(){return blank(S.meta.townhouses)?thCount():num(S.meta.townhouses);}
+function blockCount(){return (S.ths||[]).reduce(function(a,t){return a+(t.blocks||[]).length;},0);}
+function migrate(){
+  if(!S.ths){
+    S.ths=[];
+    (S.blocks||[]).forEach(function(b){
+      var t=S.ths.filter(function(x){return x.th===b.th;})[0];
+      if(!t){t={th:b.th,blocks:[]};S.ths.push(t);}
+      t.blocks.push({block:b.block,villas:num(b.villas)});
+    });
+    delete S.blocks;
+  }
+  if(S.kpi){["rows","handed","workforce","crews"].forEach(function(k){delete S.kpi[k];});}
+  if(S.exec)delete S.exec;
+  if(S.iptCost===undefined)S.iptCost=0;
+  if(S.kpi&&!S.kpi.source)S.kpi.source="trades";
+  (S.ipt||[]).forEach(function(r){
+    if(r.plan===undefined)r.plan=num(r.pct);
+    if(r.extra===undefined)r.extra=false;
+    if(r.extra)r.plan=0;
+  });
+  if(S.pages&&S.pages.length&&num(S.schema)<3){
+    var hasChart=S.pages.some(function(pg){return (pg.type||pg.id)==="iptchart";});
+    if(!hasChart){
+      var ii=-1;
+      S.pages.forEach(function(pg,i){if((pg.type||pg.id)==="ipt")ii=i;});
+      var np={key:newKey(),type:"iptchart",name:"IPT planned vs actual",on:true,
+              eyebrow:"IPT progress",title:"IPT - Planned vs Actual"};
+      if(ii>=0)S.pages.splice(ii+1,0,np); else S.pages.push(np);
+    }
+    S.schema=3;
+  }
+  if(!S.theme)S.theme=defaultTheme();
+  else{var d=defaultTheme();for(var tk in d)if(S.theme[tk]===undefined)S.theme[tk]=d[tk];}
+  applyTheme();
+  if(S.pages&&S.pages.length&&num(S.schema)<2){          // categories page moves up behind the summary
+    var si=-1,ei=-1;
+    S.pages.forEach(function(pg,i){
+      if(pg.type==="stages"||pg.id==="stages")si=i;
+      if(pg.type==="exec"||pg.id==="exec")ei=i;
+    });
+    if(si>=0&&ei>=0&&si!==ei+1){
+      var moved=S.pages.splice(si,1)[0];
+      S.pages.splice(si<ei?ei:ei+1,0,moved);
+    }
+    S.schema=2;
+  }
+  if(!S.costs){
+    S.costs=[{party:"MGC Team",planned:0,actual:0},
+             {party:"Subcontractor",planned:0,actual:0},
+             {party:"Manpower Supplier",planned:0,actual:0}];
+    if(S.costNote===undefined)S.costNote="Cost planned against actual spend to date, by supply party.";
+  }
+  if(S.manpower)delete S.manpower;
+  if(S.resources)delete S.resources;
+  if(S.meta&&!S.meta.currency)S.meta.currency="AED";
+  if(S.meta){
+    ["periodFrom","periodTo","issueDate"].forEach(function(k){
+      var iso=toISO(S.meta[k]); if(iso)S.meta[k]=iso;
+    });
+    if(!S.meta.issueDate)S.meta.issueDate=todayISO();
+    if(S.meta.villas===undefined)S.meta.villas=totalVillas();
+    if(S.meta.townhouses===undefined)S.meta.townhouses=thCount();
+    var nr=toISO(S.meta.nextReport);
+    S.meta.nextReport=nr||nextMonday(S.meta.periodTo||S.meta.issueDate);
+    delete S.meta.revision;
+  }
+  if(S.meta&&num(S.meta.weekNo)>5){
+    var d=String(S.meta.periodTo||S.meta.periodFrom||"").match(/\b(\d{1,2})\b/);
+    S.meta.weekNo=String(d?Math.min(5,Math.ceil(num(d[1])/7)):1);
+  }
+  if(S.stages&&S.stages.length&&S.stages[0].pct===undefined){
+    var tot=S.stages.reduce(function(a,x){return a+num(x.count);},0)||1;
+    S.stages.forEach(function(x){
+      x.pct=Math.round(num(x.count)/tot*1000)/10;   // keep what the card used to display
+      delete x.count;
+      if(x.note===undefined)x.note="";
+    });
+  }
+  (S.stages||[]).forEach(function(x){if(x.note===undefined)x.note="";});
+  if(S.stageNote==="villas are at or beyond MEP snagging stage.")
+    S.stageNote="Percentages show cumulative MEP completion per work category.";
+  (S.pages||[]).forEach(function(pg,i){
+    if((pg.type||pg.id)==="iptchart"&&pg.title==="IPT planned against actual")
+      pg.title="IPT - Planned vs Actual";
+    if(pg.type==="res"||pg.id==="res"){
+      if(pg.title==="MEP manpower and plant deployment"||pg.title==="Cost planned against actual spend"||
+         pg.title==="MEP manpower until this week")
+        pg.title="MEP manpower {mon}-{year} IPT — Week {week}";
+      if(pg.eyebrow==="Resources")pg.eyebrow="Manpower cost";
+      if(pg.name==="Manpower & plant")pg.name="Manpower cost";
+    }
+    if(pg.type==="stages"||pg.id==="stages"){
+      if(pg.eyebrow==="Stage distribution")pg.eyebrow="Main work categories";
+      if(pg.title==="MEP stage across the villas")pg.title="MEP Progress across the Work Categories";
+      if(pg.name==="MEP stage mix")pg.name="Main work categories";
+    }
+    if(!pg.type)pg.type=pg.id||"text";
+    if(!pg.key)pg.key="p"+(i+1);
+    if(!pg.name)pg.name=typeName(pg.type);
+    if(pg.on===undefined)pg.on=true;
+    if("id" in pg)delete pg.id;
+  });
+}
+var MONTHS=["January","February","March","April","May","June","July",
+  "August","September","October","November","December"];
+function pad2(n){return n<10?"0"+n:""+n;}
+function todayISO(){var d=new Date();return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());}
+function parseISO(v){
+  var m=String(v||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m?{y:+m[1],m:+m[2],d:+m[3]}:null;
+}
+function toISO(txt){                       // accepts "29 Aug 2026", "04 September 2026", ISO
+  if(!txt)return "";
+  if(parseISO(txt))return String(txt);
+  var t=String(txt), mi=-1, at=-1;
+  for(var i=0;i<12;i++){
+    var m=new RegExp("\\b"+MONTHS[i].slice(0,3),"i").exec(t);
+    if(m&&(at<0||m.index<at)){at=m.index;mi=i;}
+  }
+  var y=t.match(/\b(20\d{2})\b/);
+  var day=0, nums=t.match(/\b\d{1,2}\b/g)||[];
+  for(var k=0;k<nums.length;k++){            // a day has to be 1-31; skip week numbers and the like
+    var v=parseInt(nums[k],10);
+    if(v>=1&&v<=31){day=v;break;}
+  }
+  if(day&&y&&mi>=0)return y[1]+"-"+pad2(mi+1)+"-"+pad2(day);
+  return "";
+}
+function isoToDate(v){var p=parseISO(v);return p?new Date(Date.UTC(p.y,p.m-1,p.d)):null;}
+function dateToISO(d){return d.getUTCFullYear()+"-"+pad2(d.getUTCMonth()+1)+"-"+pad2(d.getUTCDate());}
+function nextMonday(v){                        // the first Monday strictly after this date
+  var d=isoToDate(v)||new Date();
+  if(!isoToDate(v))d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  var add=(8-d.getUTCDay())%7; if(add===0)add=7;
+  d.setUTCDate(d.getUTCDate()+add);
+  return dateToISO(d);
+}
+function weekOfMonth(v){var p=parseISO(v);return p?Math.min(5,Math.ceil(p.d/7)):1;}
+function nextReportLabel(){
+  var v=S.meta.nextReport;
+  return parseISO(v)?("Week "+weekOfMonth(v)+", "+fmtLong(v)):(v||"");
+}
+function fmtShort(v){var p=parseISO(v);return p?pad2(p.d)+" "+MONTHS[p.m-1].slice(0,3)+" "+p.y:(v||"");}
+function fmtLong(v){var p=parseISO(v);return p?pad2(p.d)+" "+MONTHS[p.m-1]+" "+p.y:(v||"");}
+function monthYear(){
+  var srcs=[S.meta.periodTo,S.meta.periodFrom,S.meta.issueDate];   // the month reported on, not the day it was typed
+  for(var k=0;k<srcs.length;k++){
+    var iso=parseISO(srcs[k]);
+    if(iso)return {month:MONTHS[iso.m-1],mon:MONTHS[iso.m-1].slice(0,3),year:String(iso.y)};
+  }
+  for(var j=0;j<srcs.length;j++){                 // legacy free-text dates
+    var t=srcs[j]; if(!t)continue;
+    var at=-1,hit=-1;
+    for(var i=0;i<12;i++){
+      var m=new RegExp("\\b"+MONTHS[i].slice(0,3),"i").exec(t);
+      if(m&&(at<0||m.index<at)){at=m.index;hit=i;}
+    }
+    if(hit>=0){
+      var y=t.match(/\b(20\d{2})\b/);
+      return {month:MONTHS[hit],mon:MONTHS[hit].slice(0,3),year:y?y[1]:""};
+    }
+  }
+  return {month:"",mon:"",year:""};
+}
+function tok(str){
+  if(str===undefined||str===null)return "";
+  var my=monthYear();
+  return String(str)
+    .replace(/\{week\}/gi,S.meta.weekNo||"")
+    .replace(/\{month\}/gi,my.month)
+    .replace(/\{mon\}/gi,my.mon)
+    .replace(/\{year\}/gi,my.year)
+    .replace(/\{project\}/gi,S.meta.projectName||"")
+    .replace(/\{company\}/gi,S.meta.companyName||"")
+    .replace(/\{period\}/gi,period())
+    .replace(/\{date\}/gi,fmtLong(S.meta.issueDate));
+}
+function period(){
+  var my=monthYear();
+  var head="Week "+(S.meta.weekNo||"")+(my.month?(", "+my.month+" "+my.year):"");
+  var a=fmtShort(S.meta.periodFrom), b=fmtShort(S.meta.periodTo);
+  var span=(a&&b)?(a+" – "+b):(a||b);
+  return span?(head+"  ·  "+span):head;
+}
+function footLine(){return S.meta.projectName+"  ·  "+period();}
+function mepFromTrades(){
+  var t=subTrades(); if(!t.length)return 0;
+  return t.reduce(function(a,x){return a+num(x.pct);},0)/t.length;
+}
+function mepFromIpt(){return weightTotals().actual;}
+function mepActual(){
+  var src=S.kpi.source||"trades";
+  if(src==="trades")return mepFromTrades();
+  if(src==="ipt")return mepFromIpt();
+  return num(S.kpi.actual);
+}
+function hasBaseline(){return String(S.kpi.planned).trim()!==""&&num(S.kpi.planned)>0;}
+function variance(){return (mepActual()-num(S.kpi.planned)).toFixed(1);}
+function iptCost(){return num(S.iptCost);}
+function weightOf(r){var c=iptCost();return c?(num(r.value)/c*100):0;}
+function weightTotals(){
+  var w=0,pl=0,ac=0,xw=0,xa=0;
+  (S.ipt||[]).forEach(function(r){
+    var x=weightOf(r);
+    if(r.extra){ xw+=x; xa+=x*num(r.pct)/100; }        // extra work sits outside the IPT value
+    else { w+=x; pl+=x*num(r.plan)/100; ac+=x*num(r.pct)/100; }
+  });
+  return {weight:w,planned:pl,actual:ac,extraWeight:xw,extraActual:xa};
+}
+function iptSplit(){
+  var m=[],e=[];
+  (S.ipt||[]).forEach(function(r){ (r.extra?e:m).push(r); });
+  return {main:m,extra:e};
+}
+function iptOrdered(){var q=iptSplit();return q.main.concat(q.extra);}
+function earnedTotals(){
+  var vm=0,ve=0;
+  (S.ipt||[]).forEach(function(r){
+    var v=num(r.value)*Math.max(0,Math.min(100,num(r.pct)))/100;
+    if(r.extra)ve+=v; else vm+=v;
+  });
+  var wt=weightTotals();
+  return {pct:wt.actual,value:vm,extraPct:wt.extraWeight?wt.extraActual:0,extraValue:ve};
+}
+function earnedLine(){
+  var t=earnedTotals();
+  var out="Total actual progress:  "+t.pct.toFixed(2)+"%  ·  "+cur()+" "+money(Math.round(t.value))+" earned";
+  if(!iptCost())out="Total actual progress:  "+cur()+" "+money(Math.round(t.value))+" earned  (enter the total IPT value for a percentage)";
+  if(t.extraValue)out+="   +  extra IPTs "+(iptCost()?(t.extraPct.toFixed(2)+"%  ·  "):"")+cur()+" "+money(Math.round(t.extraValue));
+  return out;
+}
+function iptTotals(){var v=0,f=0;S.ipt.forEach(function(r){v+=num(r.value);f+=num(r.villas);});return{value:v,fronts:f};}
+function costTot(k){return (S.costs||[]).reduce(function(a,c){return a+num(c[k]);},0);}
+function cur(){return S.meta.currency||"AED";}
+function kfmt(v){
+  v=num(v);
+  if(Math.abs(v)>=1000)return (v/1000).toFixed(Math.abs(v)>=10000?0:1)+"K";
+  return String(Math.round(v));
+}
+function stageAvg(){
+  var l=S.stages||[]; if(!l.length)return 0;
+  return l.reduce(function(a,x){return a+num(x.pct);},0)/l.length;
+}
+function logoAR(){return num(S.meta.logoAR)>0?num(S.meta.logoAR):1.352;}
+function logoBox(h){return {w:(h*SY*logoAR())/SX, h:h};}   // same footprint in preview and PowerPoint
+function measureLogo(cb){
+  if(!S.meta.logo){if(cb)cb();return;}
+  var im=new Image();
+  im.onload=function(){
+    if(im.naturalHeight)S.meta.logoAR=im.naturalWidth/im.naturalHeight;
+    save(); if(cb)cb();
+  };
+  im.onerror=function(){if(cb)cb();};
+  im.src=S.meta.logo;
+}
+function trade(name){
+  var m=(S.trades||[]).filter(function(t){return String(t.name).toLowerCase().indexOf(name.toLowerCase())===0;})[0];
+  return m||{name:name,pct:0,move:"",note:""};
+}
+function subTrades(){
+  return (S.trades||[]).filter(function(t){return String(t.name).toLowerCase().indexOf("lpg")!==0;}).slice(0,3);
+}
+function toneHex(t){return {green:C.green,accent:C.terra,slate:C.slate,muted:C.muted}[t]||C.slate;}
+function sevHex(s){return s==="HIGH"?C.red:s==="MEDIUM"?C.gold:C.slate;}
+function statusHex(s){
+  if(s==="Delivered"||s==="Approved")return C.green;
+  if(s==="Delayed"||s==="Awaiting approval")return C.red;
+  return C.gold;
+}
+
+function save(){try{localStorage.setItem("mepReport",JSON.stringify(S));}catch(e){}}
+function load(){try{var r=localStorage.getItem("mepReport");if(r)S=JSON.parse(r);}catch(e){}}
+
+/* =====================================================================
+   3. EDITOR — schema driven
+   ===================================================================== */
+var SECTIONS=[
+  {id:"project",label:"Project & branding"},
+  {id:"blocks", label:"Townhouse database"},
+  {id:"exec",   label:"Executive summary"},
+  {id:"curve",  label:"Progress curve"},
+  {id:"trades", label:"Discipline progress"},
+  {id:"stages", label:"Main work categories"},
+  {id:"ipt",    label:"IPT progress"},
+  {id:"res",    label:"Manpower cost"},
+  {id:"risk",   label:"Areas of concern"},
+  {id:"proc",   label:"Procurement"},
+  {id:"look",   label:"Look ahead"},
+  {id:"close",  label:"Closing summary"},
+  {id:"theme",  label:"Theme & appearance"},
+  {id:"heads",  label:"Pages"}
+];
+var current="project";
+
+function buildNav(){
+  var n=document.getElementById("nav");
+  n.innerHTML='<div class="navhead">Report sections</div>'+SECTIONS.map(function(sec){
+    var pgm=pageByType(sec.id);
+    var label=pgm?pgm.name:sec.label;
+    var off=pgm&&pgm.on===false;
+    return '<button class="navitem'+(sec.id===current?" on":"")+(off?" off":"")+'" data-sec="'+sec.id+'">'+
+           esc(label)+(off?'<span class="offtag">hidden</span>':'')+'</button>';
+  }).join("");
+  n.querySelectorAll(".navitem").forEach(function(b){
+    b.onclick=function(){current=b.dataset.sec;buildNav();renderEditor();};
+  });
+}
+
+/* generic table editor */
+function tableEditor(arr,cols,onChange){
+  var h='<table class="ed"><thead><tr>';
+  cols.forEach(function(c){h+='<th'+(c.w?' style="width:'+c.w+'"':'')+'>'+esc(c.label)+'</th>';});
+  h+='<th class="act"></th></tr></thead><tbody>';
+  arr.forEach(function(row,i){
+    h+='<tr>';
+    cols.forEach(function(c){
+      if(c.type==="calc"){
+        h+='<td class="calc" data-calc="'+i+'">'+esc(c.calc(row))+'</td>';
+      }else if(c.type==="boolsel"){
+        h+='<td><select data-i="'+i+'" data-k="'+c.key+'" data-bool="1" data-true="'+esc(c.options[1])+'">'+
+          c.options.map(function(o,oi){
+            var on=(oi===1)===!!row[c.key];
+            return '<option'+(on?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></td>';
+      }else if(c.type==="select"){
+        h+='<td><select data-i="'+i+'" data-k="'+c.key+'">'+c.options.map(function(o){
+          return '<option'+(row[c.key]===o?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></td>';
+      }else{
+        h+='<td><input type="'+(c.type==="number"?"number":"text")+'"'+(c.step?' step="'+c.step+'"':'')+
+           ' data-i="'+i+'" data-k="'+c.key+'" value="'+esc(row[c.key])+'"></td>';
+      }
+    });
+    h+='<td class="act"><button class="iconbtn" data-del="'+i+'" title="Delete row">✕</button></td></tr>';
+  });
+  h+='</tbody></table>';
+  return h;
+}
+function wireTable(el,arr,onChange){
+  el.querySelectorAll("input[data-k],select[data-k]").forEach(function(f){
+    var handler=function(){
+      var row=arr[+f.dataset.i], k=f.dataset.k, v;
+      if(f.dataset.bool)v=(f.value===f.dataset.true);
+      else v=(f.type==="number"?num(f.value):f.value);
+      row[k]=v;
+      if(k==="extra"&&v)row.plan=0;              // extra work has no planned percentage
+      save();
+      if(f.dataset.bool)renderEditor();
+      else { refreshIptCalc(); if(onChange)onChange(); }
+    };
+    f.oninput=handler; f.onchange=handler;
+  });
+  el.querySelectorAll("[data-del]").forEach(function(b){
+    b.onclick=function(){arr.splice(+b.dataset.del,1);save();renderEditor();};
+  });
+}
+function addBtn(label,fn){
+  var b=document.createElement("button");b.className="sbtn";b.textContent=label;b.onclick=fn;return b;
+}
+function selectField(label,obj,key,options){
+  return '<div><label class="f">'+esc(label)+'</label><select data-o data-k="'+key+'">'+
+    options.map(function(o){return '<option'+(String(obj[key])===String(o)?" selected":"")+'>'+esc(o)+'</option>';}).join("")+
+    '</select></div>';
+}
+function field(label,obj,key,type){
+  return '<div><label class="f">'+esc(label)+'</label><input type="'+(type||"text")+
+    '" data-o data-k="'+key+'" value="'+esc(obj[key])+'"></div>';
+}
+function wireFields(el,obj){
+  el.querySelectorAll("[data-o]").forEach(function(f){
+    var handler=function(){obj[f.dataset.k]=f.type==="number"?num(f.value):f.value;save();updateTag();};
+    f.oninput=handler; f.onchange=handler;
+  });
+}
+
+function renderEditor(){
+  var w=document.getElementById("work");
+  var s=current, h="";
+
+  if(s==="project"){
+    h+='<div class="sec"><h2>Project & branding</h2><p class="hint">These details appear on the cover, the footer of every page and the closing page.</p>';
+    h+='<div class="card"><h3>Identity</h3><div class="grid" id="fMeta">'+
+      field("Project name",S.meta,"projectName")+field("Company name",S.meta,"companyName")+
+      field("Report title",S.meta,"reportTitle")+field("Location",S.meta,"location")+
+      field("Disciplines",S.meta,"disciplines")+field("Issued by",S.meta,"issuedBy")+field("Currency",S.meta,"currency")+
+      '</div></div>';
+    h+='<div class="card"><h3>Scope</h3><div class="grid" id="fScope">'+
+      field("No. of villas",S.meta,"villas","number")+
+      field("No. of townhouses",S.meta,"townhouses","number")+
+      '</div><p class="hint" style="margin:12px 0 0">These two figures appear on the cover and the work categories page. '+
+      'Clear either one to fall back to the townhouse database, which currently holds '+
+      totalVillas()+' villas across '+thCount()+' townhouses.</p></div>';
+    h+='<div class="card"><h3>Reporting period</h3><p class="hint" style="margin:-6px 0 12px">Weeks run 1 to 5 within each month. The issue date starts on today and stays editable. The month and year in headings come from the period end date.</p><div class="grid" id="fMeta2">'+
+      selectField("Week of the month",S.meta,"weekNo",["1","2","3","4","5"])+field("Period from",S.meta,"periodFrom","date")+
+      field("Period to",S.meta,"periodTo","date")+field("Issue date",S.meta,"issueDate","date")+field("Next report (a Monday)",S.meta,"nextReport","date")+
+      '</div><div class="rowbtns"><button class="sbtn" id="btnNextMon">Set next report to the following Monday</button>'+
+      '<span class="tot">Next report: '+esc(nextReportLabel())+'</span></div></div>';
+    h+='<div class="card"><h3>Project logo</h3><div class="logobox">'+
+      '<div class="logoprev" id="logoPrev">'+(S.meta.logo?'<img src="'+S.meta.logo+'">':'<span>No logo yet</span>')+'</div>'+
+      '<div><button class="sbtn" id="btnLogo">Upload logo</button> '+
+      '<button class="sbtn" id="btnLogoClr">Remove</button>'+
+      '<p class="hint" style="margin:10px 0 0">PNG with a transparent background works best. It sits on the cover and closing page.</p></div>'+
+      '</div></div></div>';
+  }
+
+  if(s==="blocks"){
+    h+='<div class="sec"><h2>Townhouse database</h2><p class="hint">Each townhouse holds one or more blocks. Enter the villa count per block — the townhouse total and the site total are worked out for you. The headline scope printed on the report is set separately, under Project &amp; branding.</p>';
+    S.ths.forEach(function(t,ti){
+      h+='<div class="card"><div class="throw">'+
+         '<label class="f" style="margin:0">Townhouse</label>'+
+         '<input type="text" class="thcode" data-th="'+ti+'" value="'+esc(t.th)+'">'+
+         '<span class="thtot">'+thTotal(t)+' villas</span>'+
+         '<button class="iconbtn" data-delth="'+ti+'" title="Delete townhouse">✕</button></div>'+
+         '<table class="ed"><thead><tr><th>Block</th><th style="width:170px">No. of villas</th><th class="act"></th></tr></thead><tbody>';
+      (t.blocks||[]).forEach(function(b,bi){
+        h+='<tr><td><input type="text" data-ti="'+ti+'" data-bi="'+bi+'" data-bk="block" value="'+esc(b.block)+'"></td>'+
+           '<td><input type="number" data-ti="'+ti+'" data-bi="'+bi+'" data-bk="villas" value="'+esc(b.villas)+'"></td>'+
+           '<td class="act"><button class="iconbtn" data-delb="'+ti+'.'+bi+'" title="Delete block">✕</button></td></tr>';
+      });
+      h+='</tbody></table><div class="rowbtns"><button class="sbtn" data-addb="'+ti+'">Add block</button></div></div>';
+    });
+    h+='<div class="rowbtns"><button class="sbtn" id="addTh">Add townhouse</button>'+
+       '<span class="tot">'+thCount()+' townhouses · '+blockCount()+' blocks · '+totalVillas()+' villas total</span></div></div>';
+  }
+
+  if(s==="exec"){
+    h+='<div class="sec"><h2>Executive summary</h2><p class="hint">This page shows figures only. The Electrical, Plumbing, HVAC and LPG percentages come from the Discipline progress section — the headline MEP completion can follow them automatically.</p>';
+    var src=S.kpi.source||"trades";
+    h+='<div class="card"><h3>MEP completion</h3><div class="grid" id="fKpiSrc">'+
+      '<div><label class="f">Where the headline figure comes from</label><select data-src>'+
+        [["trades","Average of the disciplines"],["ipt","Earned IPT weightage"],["manual","Type it in myself"]]
+          .map(function(o){return '<option value="'+o[0]+'"'+(src===o[0]?" selected":"")+'>'+esc(o[1])+'</option>';}).join("")+
+      '</select></div>'+
+      (src==="manual"?('<div><label class="f">MEP completion %</label><input type="number" data-o data-k="actual" value="'+esc(S.kpi.actual)+'"></div>')
+        :('<div><label class="f">MEP completion %</label><div class="readout">'+mepActual().toFixed(1)+'%</div></div>'))+
+      '</div><p class="hint" style="margin:12px 0 0">'+
+      'Disciplines average: <strong>'+mepFromTrades().toFixed(1)+'%</strong> &nbsp;·&nbsp; '+
+      'Earned IPT weightage: <strong>'+mepFromIpt().toFixed(1)+'%</strong>'+
+      (src==="manual"?' &nbsp;·&nbsp; currently typed in by hand.':'')+'</p></div>';
+    h+='<div class="card"><h3>Baseline</h3><div class="grid" id="fKpi">'+
+      field("Baseline plan %",S.kpi,"planned","number")+
+      field("Gained this week (%)",S.kpi,"weekly","number")+
+      '</div><p class="hint" style="margin:12px 0 0">'+(hasBaseline()?('Variance is calculated for you: <strong>'+variance()+'%</strong>.')
+        :'No baseline entered, so the baseline and variance lines are left off the report.')+'</p></div>';
+    h+='<div class="card"><h3>On the page now</h3><p class="hint" style="margin:0">'+
+      'Left: MEP completion with '+subTrades().map(function(t){return esc(t.name);}).join(", ")+' beneath it. '+
+      'Right: '+esc(trade("LPG").name)+' as a second progress block, with its note from Discipline progress as the status line.'+
+      '</p></div></div>';
+  }
+
+  if(s==="curve"){
+    h+='<div class="sec"><h2>Progress curve</h2><p class="hint">Planned against actual cumulative completion. Add a row per reporting week.</p>'+
+      '<div class="card" id="tCurve">'+tableEditor(S.curve,[
+        {label:"Week",key:"week",w:"120px"},{label:"Baseline plan %",key:"plan",type:"number",step:"0.1"},
+        {label:"Actual %",key:"actual",type:"number",step:"0.1"}
+      ])+'<div class="rowbtns" id="bCurve"></div></div>'+
+      '<div class="card"><h3>Note beside the chart</h3><div id="fCurveNote">'+
+      '<textarea data-o data-k="curveNote">'+esc(S.curveNote)+'</textarea></div></div></div>';
+  }
+
+  if(s==="trades"){
+    h+='<div class="sec"><h2>Discipline progress</h2><p class="hint">Cumulative completion per MEP trade and how far each moved this week.</p>'+
+      '<div class="card" id="tTrades">'+tableEditor(S.trades,[
+        {label:"Trade",key:"name"},{label:"Complete %",key:"pct",type:"number",step:"0.1",w:"130px"},
+        {label:"Weekly movement (%)",key:"move",w:"150px"},{label:"Note",key:"note"}
+      ])+'<div class="rowbtns" id="bTrades"></div></div></div>';
+  }
+
+  if(s==="stages"){
+    h+='<div class="sec"><h2>Main work categories</h2><p class="hint">Enter a completion percentage per work category. They are drawn as a bar chart, one bar per row, coloured by the colour band. Around eight to ten categories fit comfortably.</p>'+
+      '<div class="card" id="tStages">'+tableEditor(S.stages,[
+        {label:"Work category",key:"name"},
+        {label:"Complete %",key:"pct",type:"number",step:"0.1",w:"130px"},
+        {label:"Colour band",key:"tone",type:"select",options:["green","accent","slate","muted"],w:"140px"},
+      ])+'<div class="rowbtns" id="bStages"><span class="tot">'+S.stages.length+' categories · average '+stageAvg().toFixed(1)+'%</span></div></div>'+
+      '<div class="card"><h3>Line under the cards</h3><div id="fStageNote">'+
+      '<textarea data-o data-k="stageNote">'+esc(S.stageNote)+'</textarea></div></div></div>';
+  }
+
+  if(s==="ipt"){
+    var t=iptTotals();
+    h+='<div class="sec"><h2>IPT progress</h2><p class="hint">One row per activity front. Set Section to <strong>Extra IPT</strong> for work outside the planned IPT — planned drops to 0% and the row moves to its own block under the main activities.</p>'+
+      '<div class="card"><h3>Total IPT value</h3><div class="grid" id="fIptCost">'+
+        field("Total IPT cost ("+cur()+")",S,"iptCost","number")+
+        '</div><p class="hint" style="margin:12px 0 0">Each planned activity\'s weightage is its value divided by this total. Extra IPTs are counted separately, outside the IPT value.</p>'+
+        '<p class="hint" id="iptAlloc" style="margin:6px 0 0"></p></div>'+
+      '<div class="card" id="tIpt">'+tableEditor(S.ipt,[
+        {label:"Activity",key:"activity"},{label:"Section",key:"extra",type:"boolsel",options:["Planned IPT","Extra IPT"],w:"140px"},{label:"TH",key:"th",w:"110px"},
+        {label:"Villas",key:"villas",type:"number",w:"85px"},{label:"Planned %",key:"plan",type:"number",w:"105px"},{label:"Actual %",key:"pct",type:"number",w:"105px"},
+        {label:"Value ("+cur()+")",key:"value",type:"number",w:"125px"},
+        {label:"Weightage %",type:"calc",w:"110px",calc:function(r){return iptCost()?(weightOf(r).toFixed(2)+"%"+(r.extra?" *":"")):"—";}},{label:"Remarks",key:"remarks"}
+      ])+'<div class="rowbtns" id="bIpt"><span class="tot">'+iptSplit().main.length+' planned · '+iptSplit().extra.length+' extra · AED '+money(t.value)+' · '+t.fronts+' villa-activity fronts</span></div></div></div>';
+  }
+
+  if(s==="res"){
+    var tp=costTot("planned"), ta=costTot("actual");
+    h+='<div class="sec"><h2>Manpower cost</h2><p class="hint">Cost planned against actual spend for each supply party. The chart, the totals and the percentage spent are all built from this table.</p>'+
+      '<div class="card" id="tCost">'+tableEditor(S.costs,[
+        {label:"Supply party",key:"party"},
+        {label:"Cost planned ("+cur()+")",key:"planned",type:"number",w:"200px"},
+        {label:"Actual cost ("+cur()+")",key:"actual",type:"number",w:"200px"}
+      ])+'<div class="rowbtns" id="bCost"><span class="tot">Planned '+cur()+' '+money(tp)+
+      ' · Actual '+cur()+' '+money(ta)+' · '+(tp?(ta/tp*100).toFixed(1):"0.0")+'% spent</span></div></div>'+
+      '<div class="card"><h3>Line under the chart</h3><div id="fCostNote">'+
+      '<textarea data-o data-k="costNote">'+esc(S.costNote||"")+'</textarea></div></div></div>';
+  }
+
+  if(s==="risk"){
+    h+='<div class="sec"><h2>Areas of concern</h2><p class="hint">Open issues with a severity and a named owner. Keep it to five or six so the page stays readable.</p>'+
+      '<div class="card" id="tRisk">'+tableEditor(S.concerns,[
+        {label:"Severity",key:"sev",type:"select",options:["HIGH","MEDIUM","LOW"],w:"120px"},
+        {label:"Issue",key:"title"},{label:"Detail",key:"detail"},{label:"Owner",key:"owner",w:"160px"}
+      ])+'<div class="rowbtns" id="bRisk"></div></div></div>';
+  }
+
+  if(s==="proc"){
+    h+='<div class="sec"><h2>Procurement</h2><p class="hint">Material and submittal status. The status word is colour-coded on the page.</p>'+
+      '<div class="card" id="tProc">'+tableEditor(S.procurement,[
+        {label:"Material / package",key:"item"},{label:"Qty",key:"qty",w:"110px"},
+        {label:"Status",key:"status",type:"select",options:["Delivered","Approved","In transit","Partial delivery","Delayed","Awaiting approval"],w:"160px"},
+        {label:"ETA on site",key:"eta",w:"150px"},{label:"Impact if delayed",key:"impact"}
+      ])+'<div class="rowbtns" id="bProc"></div></div>'+
+      '<div class="card"><h3>Note under the table</h3><div id="fProcNote">'+
+      '<textarea data-o data-k="procNote">'+esc(S.procNote)+'</textarea></div></div></div>';
+  }
+
+  if(s==="look"){
+    h+='<div class="sec"><h2>Look ahead</h2><p class="hint">What the coming week is committed to. Six items fill the page grid.</p>'+
+      '<div class="card" id="tLook">'+tableEditor(S.lookahead,[
+        {label:"Activity",key:"title"},{label:"TH",key:"th",w:"130px"},{label:"Detail",key:"detail"}
+      ])+'<div class="rowbtns" id="bLook"></div></div>'+
+      '<div class="card"><h3>Target line</h3><div id="fLookNote">'+
+      '<textarea data-o data-k="lookNote">'+esc(S.lookNote)+'</textarea></div></div></div>';
+  }
+
+  if(s==="close"){
+    h+='<div class="sec"><h2>Closing summary</h2><p class="hint">The last page: one headline and up to three takeaways.</p>'+
+      '<div class="card"><h3>Headline</h3><div id="fClose">'+
+      '<textarea data-o data-k="headline">'+esc(S.closing.headline)+'</textarea></div></div>'+
+      '<div class="card"><h3>Takeaways</h3><div id="tBul">'+
+      tableEditor(S.closing.bullets,[{label:"Takeaway",key:"text"}])+
+      '<div class="rowbtns" id="bBul"></div></div></div></div>';
+  }
+
+  if(s==="theme"){
+    var t=S.theme;
+    h+='<div class="sec"><h2>Theme &amp; appearance</h2><p class="hint">Pick a palette as a starting point, then change any individual colour. The background object appears on the cover and closing pages only.</p>';
+    h+='<div class="card"><h3>Palette</h3><div class="swatches">';
+    THEMES.forEach(function(th){
+      h+='<button class="swatch'+(t.preset===th.id?" on":"")+'" data-preset="'+th.id+'">'+
+         '<span class="chips">'+["ink","accent","chart","accent2","cardBg"].map(function(k){
+            return '<i style="background:#'+th.c[k]+'"></i>';}).join("")+'</span>'+
+         '<span class="swname">'+esc(th.name)+'</span></button>';
+    });
+    h+='</div><p class="hint" style="margin:12px 0 0">Mediterranean is the theme this report was built with.</p></div>';
+    var groups=[
+      ["Text",[["ink","Headings"],["body","Body text"],["slate","Secondary text"],["muted","Captions"]]],
+      ["Accents",[["accent","Accent (labels, figures)"],["accent2","Second accent"],["chart","Charts"],
+                  ["good","Positive"],["bad","Negative"]]],
+      ["Surfaces",[["pageBg","Page background"],["cardBg","Card fill"],["cardLine","Card border"],
+                   ["coverBg","Cover & closing background"],["coverInk","Cover title"]]]
+    ];
+    groups.forEach(function(g){
+      h+='<div class="card"><h3>'+g[0]+'</h3><div class="grid">';
+      g[1].forEach(function(f){
+        h+='<div><label class="f">'+esc(f[1])+'</label><div class="colrow">'+
+           '<input type="color" data-th="'+f[0]+'" value="#'+t[f[0]]+'">'+
+           '<input type="text" class="hex" data-thx="'+f[0]+'" value="#'+t[f[0]]+'"></div></div>';
+      });
+      h+='</div></div>';
+    });
+    h+='<div class="card"><h3>Background object</h3><div class="grid">'+
+       '<div><label class="f">Object</label><select data-th="motif">'+MOTIFS.map(function(m){
+          return '<option value="'+m.id+'"'+(t.motif===m.id?" selected":"")+'>'+esc(m.name)+'</option>';}).join("")+'</select></div>'+
+       '<div><label class="f">Object colour</label><div class="colrow">'+
+       '<input type="color" data-th="motifColor" value="#'+t.motifColor+'">'+
+       '<input type="text" class="hex" data-thx="motifColor" value="#'+t.motifColor+'"></div></div>'+
+       '<div><label class="f">Strength ('+num(t.motifOpacity)+'%)</label>'+
+       '<input type="range" min="0" max="100" data-th="motifOpacity" value="'+num(t.motifOpacity)+'"></div>'+
+       '</div><div class="motifprev" style="background:#'+t.coverBg+'">'+
+       (t.motif==="none"?'<span class="hint">No background object</span>'
+        :'<img src="'+artURL()+'" style="opacity:'+motifAlpha(1)+'">')+'</div></div>';
+    h+='<div class="rowbtns"><button class="sbtn" id="themeReset">Reset to '+esc(themeById(t.preset).name)+'</button></div></div>';
+  }
+  if(s==="heads"){
+    var pn=0;
+    h+='<div class="sec"><h2>Pages</h2><p class="hint">Rename a section, switch it off to leave it out of the PowerPoint and PDF, or reorder with the arrows. Page numbers renumber themselves around whatever is switched off.<br>Labels and headings accept <strong>{week} {mon} {month} {year} {project} {company} {period} {date}</strong> — these fill in from Project &amp; branding, so headings stay correct every week.</p>';
+    S.pages.forEach(function(pgm,i){
+      var live=pgm.on!==false, showsNum=live&&numbered(pgm.type);
+      if(showsNum)pn++;
+      h+='<div class="card'+(live?"":" pgoff")+'"><div class="pghdr">'+
+         '<span class="pgtag">'+(showsNum?String(pn).padStart(2,"0"):(live?"—":"off"))+'</span>'+
+         '<input type="text" class="pgname" data-pk="name" data-pi="'+i+'" value="'+esc(pgm.name||"")+'" title="Section name">'+
+         '<select data-pt="'+i+'" style="width:170px">'+PAGE_TYPES.map(function(t){
+            return '<option value="'+t.type+'"'+(t.type===pgm.type?" selected":"")+'>'+esc(t.name)+'</option>';}).join("")+'</select>'+
+         '<button class="sbtn mv" data-up="'+i+'"'+(i===0?" disabled":"")+' title="Move up">↑</button>'+
+         '<button class="sbtn mv" data-down="'+i+'"'+(i===S.pages.length-1?" disabled":"")+' title="Move down">↓</button>'+
+         '<label class="tog"><input type="checkbox" data-on="'+i+'"'+(live?" checked":"")+'> Include</label>'+
+         '<button class="iconbtn" data-delp="'+i+'" title="Delete page">✕</button></div>'+
+         '<div class="grid">'+
+         '<div><label class="f">Small label on the page</label><input type="text" data-pk="eyebrow" data-pi="'+i+'" value="'+esc(pgm.eyebrow)+'"></div>'+
+         '<div><label class="f">Heading on the page</label><input type="text" data-pk="title" data-pi="'+i+'" value="'+esc(pgm.title)+'"></div>'+
+         '</div>';
+      if(pgm.type==="text"){
+        h+='<label class="f" style="margin-top:12px">Page text</label>'+
+           '<textarea data-pk="body" data-pi="'+i+'" placeholder="Leave a blank line between paragraphs.">'+esc(pgm.body||"")+'</textarea>';
+      }
+      h+='</div>';
+    });
+    var live=activePages().length;
+    h+='<div class="rowbtns"><select id="newType" style="width:190px">'+PAGE_TYPES.map(function(t){
+        return '<option value="'+t.type+'">'+esc(t.name)+'</option>';}).join("")+'</select>'+
+       '<button class="sbtn" id="addPage">Add page</button>'+
+       '<span class="tot">'+live+' of '+S.pages.length+' pages will be exported</span></div></div>';
+  }
+
+  w.innerHTML=h;
+
+  /* wiring */
+  if(s==="project"){
+    wireFields(document.getElementById("fMeta"),S.meta);
+    wireFields(document.getElementById("fMeta2"),S.meta);
+    var fs=document.getElementById("fScope");if(fs)wireFields(fs,S.meta);
+    var nm=document.getElementById("btnNextMon");
+    if(nm)nm.onclick=function(){
+      S.meta.nextReport=nextMonday(S.meta.periodTo||S.meta.issueDate);save();renderEditor();
+    };
+    document.getElementById("btnLogo").onclick=function(){document.getElementById("fileLogo").click();};
+    document.getElementById("btnLogoClr").onclick=function(){S.meta.logo="";save();renderEditor();};
+  }
+  if(s==="exec"){
+    var sel=w.querySelector("[data-src]");
+    if(sel)sel.onchange=function(){S.kpi.source=sel.value;save();renderEditor();};
+    var kb=document.getElementById("fKpi");   if(kb)wireFields(kb,S.kpi);
+    var ks=document.getElementById("fKpiSrc");if(ks)wireFields(ks,S.kpi);
+  }
+  if(s==="theme"){
+    w.querySelectorAll("[data-preset]").forEach(function(b){
+      b.onclick=function(){usePreset(b.dataset.preset);save();renderEditor();};
+    });
+    w.querySelectorAll("[data-th]").forEach(function(f){
+      f.onchange=function(){
+        var v=f.value;
+        if(f.type==="color")v=v.replace("#","").toUpperCase();
+        if(f.dataset.th==="motifOpacity")v=num(v);
+        S.theme[f.dataset.th]=v; S.theme.preset="custom";
+        applyTheme();save();renderEditor();
+      };
+    });
+    w.querySelectorAll("[data-thx]").forEach(function(f){
+      f.onchange=function(){
+        var v=String(f.value).replace("#","").toUpperCase();
+        if(!/^[0-9A-F]{6}$/.test(v)){f.value="#"+S.theme[f.dataset.thx];return;}
+        S.theme[f.dataset.thx]=v; S.theme.preset="custom";
+        applyTheme();save();renderEditor();
+      };
+    });
+    var tr=document.getElementById("themeReset");
+    if(tr)tr.onclick=function(){usePreset(S.theme.preset==="custom"?"mediterranean":S.theme.preset);save();renderEditor();};
+  }
+  if(s==="heads"){
+    w.querySelectorAll("[data-pk]").forEach(function(f){
+      f.oninput=function(){S.pages[+f.dataset.pi][f.dataset.pk]=f.value;save();
+        if(f.dataset.pk==="name")buildNav();};
+    });
+    w.querySelectorAll("[data-on]").forEach(function(f){
+      f.onchange=function(){S.pages[+f.dataset.on].on=f.checked;save();buildNav();renderEditor();};
+    });
+    w.querySelectorAll("[data-pt]").forEach(function(f){
+      f.onchange=function(){
+        var pgm=S.pages[+f.dataset.pt];
+        pgm.type=f.value;
+        if(pgm.type==="text"&&pgm.body===undefined)pgm.body="";
+        save();buildNav();renderEditor();
+      };
+    });
+    w.querySelectorAll("[data-up]").forEach(function(b){
+      b.onclick=function(){var i=+b.dataset.up;if(i<1)return;
+        var t=S.pages[i-1];S.pages[i-1]=S.pages[i];S.pages[i]=t;save();renderEditor();};
+    });
+    w.querySelectorAll("[data-down]").forEach(function(b){
+      b.onclick=function(){var i=+b.dataset.down;if(i>=S.pages.length-1)return;
+        var t=S.pages[i+1];S.pages[i+1]=S.pages[i];S.pages[i]=t;save();renderEditor();};
+    });
+    w.querySelectorAll("[data-delp]").forEach(function(b){
+      b.onclick=function(){S.pages.splice(+b.dataset.delp,1);save();buildNav();renderEditor();};
+    });
+    var ap=document.getElementById("addPage");
+    if(ap)ap.onclick=function(){
+      var t=document.getElementById("newType").value;
+      var pgm={key:newKey(),type:t,name:typeName(t),on:true,eyebrow:typeName(t),title:typeName(t)};
+      if(t==="text"){pgm.name="Notes";pgm.eyebrow="Notes";pgm.title="Additional notes";pgm.body="";}
+      S.pages.push(pgm);save();renderEditor();
+    };
+  }
+  if(s==="blocks"){
+    w.querySelectorAll(".thcode").forEach(function(f){
+      f.oninput=function(){S.ths[+f.dataset.th].th=f.value;save();};
+    });
+    w.querySelectorAll("[data-bk]").forEach(function(f){
+      f.oninput=function(){
+        var b=S.ths[+f.dataset.ti].blocks[+f.dataset.bi];
+        b[f.dataset.bk]=f.dataset.bk==="villas"?num(f.value):f.value;
+        save();
+        if(f.dataset.bk==="villas")renderEditor();
+      };
+    });
+    w.querySelectorAll("[data-delb]").forEach(function(b){
+      b.onclick=function(){var q=b.dataset.delb.split(".");
+        S.ths[+q[0]].blocks.splice(+q[1],1);save();renderEditor();};
+    });
+    w.querySelectorAll("[data-delth]").forEach(function(b){
+      b.onclick=function(){S.ths.splice(+b.dataset.delth,1);save();renderEditor();};
+    });
+    w.querySelectorAll("[data-addb]").forEach(function(b){
+      b.onclick=function(){var t=S.ths[+b.dataset.addb];
+        t.blocks.push({block:"B"+(t.blocks.length+1),villas:0});save();renderEditor();};
+    });
+    var at=document.getElementById("addTh");
+    if(at)at.onclick=function(){
+      S.ths.push({th:"TH-"+String(S.ths.length+1).padStart(2,"0"),blocks:[{block:"B1",villas:0}]});
+      save();renderEditor();
+    };
+  }
+  var maps=[
+    ["tCurve","bCurve",S.curve,function(){return{week:"W",plan:0,actual:0};},"Add week"],
+    ["tTrades","bTrades",S.trades,function(){return{name:"",pct:0,move:"+0.0",note:""};},"Add trade"],
+    ["tStages","bStages",S.stages,function(){return{name:"",pct:0,tone:"slate",note:""};},"Add category"],
+    ["tIpt","bIpt",S.ipt,function(){return{activity:"",th:"",villas:0,plan:0,pct:0,value:0,remarks:""};},"Add activity"],
+    ["tCost","bCost",S.costs,function(){return{party:"",planned:0,actual:0};},"Add party"],
+    ["tRisk","bRisk",S.concerns,function(){return{sev:"MEDIUM",title:"",detail:"",owner:""};},"Add concern"],
+    ["tProc","bProc",S.procurement,function(){return{item:"",qty:"",status:"In transit",eta:"",impact:""};},"Add package"],
+    ["tLook","bLook",S.lookahead,function(){return{title:"",th:"",detail:""};},"Add item"],
+    ["tBul","bBul",S.closing.bullets,function(){return{text:""};},"Add takeaway"]
+  ];
+  maps.forEach(function(m){
+    var host=document.getElementById(m[0]);if(!host)return;
+    wireTable(host,m[2],function(){});
+    if(m[1]){
+      var bar=document.getElementById(m[1]);
+      if(bar)bar.insertBefore(addBtn(m[4],function(){m[2].push(m[3]());save();renderEditor();}),bar.firstChild);
+    }
+  });
+  var ic=document.getElementById("fIptCost");
+  if(ic)ic.querySelectorAll("[data-o]").forEach(function(f){
+    f.oninput=function(){S.iptCost=num(f.value);save();refreshIptCalc();};   // keeps the caret in the box
+  });
+  refreshIptCalc();
+  ["fCurveNote","fStageNote","fCostNote","fProcNote","fLookNote","fClose"].forEach(function(id){
+    var el=document.getElementById(id);if(!el)return;
+    var target = id==="fClose"?S.closing : S;
+    el.querySelectorAll("[data-o]").forEach(function(f){
+      f.oninput=function(){target[f.dataset.k]=f.value;save();};
+    });
+  });
+}
+
+function refreshIptCalc(){
+  document.querySelectorAll("td.calc[data-calc]").forEach(function(td){
+    var r=S.ipt[+td.dataset.calc];
+    td.textContent = (r&&iptCost())?(weightOf(r).toFixed(2)+"%"+(r.extra?" *":"")):"—";
+    td.style.color = (r&&r.extra)?("#"+C.gold):"";
+  });
+  var note=document.getElementById("iptAlloc");
+  if(note){
+    var wt=weightTotals();
+    note.innerHTML = iptCost()
+      ? ("Planned activities allocated: <strong>"+wt.weight.toFixed(1)+"%</strong> of "+cur()+" "+money(iptCost())+
+         (wt.extraWeight?(". Extra IPTs add <strong>"+wt.extraWeight.toFixed(1)+"%</strong> on top, outside the IPT value."):"."))
+      : "Enter a total to switch the chart to weightage scaling.";
+  }
+}
+function updateTag(){
+  document.getElementById("projTag").textContent = S.meta.projectName+" · Week "+S.meta.weekNo;
+}
+
+/* =====================================================================
+   4. BACKGROUND ART
+   ===================================================================== */
+function artURL(){
+  return "data:image/svg+xml;base64,"+btoa(motifSVG(S.theme.motif,S.theme.motifColor));
+}
+var ART_CACHE={};
+function artPng(){
+  var key=(S.theme.motif||"none")+"|"+(S.theme.motifColor||"");
+  if(S.theme.motif==="none")return Promise.resolve(null);
+  if(ART_CACHE[key])return Promise.resolve(ART_CACHE[key]);
+  var url=artURL();
+  return new Promise(function(res){
+    var img=new Image();
+    img.onload=function(){
+      var c=document.createElement("canvas");c.width=1600;c.height=1131;
+      c.getContext("2d").drawImage(img,0,0,1600,1131);
+      ART_CACHE[key]=c.toDataURL("image/png");res(ART_CACHE[key]);
+    };
+    img.onerror=function(){res(null);};
+    img.src=url;
+  });
+}
+function motifAlpha(scale){return (num(S.theme.motifOpacity)/100)*(scale||1);}
+
+/* ---------- shared A4 geometry (used by preview and PowerPoint) ---------- */
+var SLW=11.69, SLH=8.27;
+var SX=(SLW-1.2)/(13.333-1.2), SY=(7.95-0.5)/(7.22-0.38);
+function fx(x){return 0.6+(x-0.6)*SX;}
+function fy(y){return 0.5+(y-0.38)*SY;}
+
+/* =====================================================================
+   5. PREVIEW — laid out on the same inch grid as the PowerPoint export,
+      so the PDF matches the deck exactly.
+   ===================================================================== */
+var PXI = 96;                       // css px per inch
+var PGW = SLW * PXI, PGH = SLH * PXI;
+function px(v){return (Math.round(v*100)/100)+"px";}
+function BX(x,y,w,h){
+  return "position:absolute;left:"+px(fx(x)*PXI)+";top:"+px(fy(y)*PXI)+
+         ";width:"+px(w*SX*PXI)+";height:"+px(h*SY*PXI)+";";
+}
+function FONT(f){return f==="H"?"Cambria,Georgia,serif":"Calibri,'Segoe UI',Arial,sans-serif";}
+function TX(text,o){
+  var st=BX(o.x,o.y,o.w,o.h);
+  st+="font-family:"+FONT(o.f)+";font-size:"+o.size+"pt;";
+  st+="font-weight:"+(o.bold?700:400)+";";
+  if(o.italic)st+="font-style:italic;";
+  st+="color:#"+(o.color||C.teal2)+";";
+  if(o.spacing)st+="letter-spacing:"+o.spacing+"pt;";
+  if(o.line)st+="line-height:"+o.line+"pt;";
+  if(o.align)st+="text-align:"+o.align+";";
+  if(o.valign==="middle"){
+    st+="display:flex;align-items:center;";
+    st+="justify-content:"+(o.align==="center"?"center":o.align==="right"?"flex-end":"flex-start")+";";
+  }
+  st+="overflow:hidden;";
+  return '<div style="'+st+'">'+(o.raw?text:esc(text))+'</div>';
+}
+function RECT(x,y,w,h,fill,line,radius,shadow){
+  var st=BX(x,y,w,h)+"background:#"+fill+";";
+  if(line)st+="border:1px solid #"+line+";";
+  if(radius)st+="border-radius:"+px(radius*SX*PXI)+";";
+  if(shadow)st+="box-shadow:0 2px 7px rgba(120,115,105,.30);";
+  return '<div style="'+st+'"></div>';
+}
+function CARD(x,y,w,h,fill){return RECT(x,y,w,h,fill||C.sand,C.sandd,0.06,true);}
+function ELL(x,y,w,fill){
+  var d=w*SX;
+  var st="position:absolute;left:"+px(fx(x)*PXI)+";top:"+px((fy(y)+(w*SY-d)/2)*PXI)+
+         ";width:"+px(d*PXI)+";height:"+px(d*PXI)+";border-radius:50%;background:#"+fill+";";
+  return '<div style="'+st+'"></div>';
+}
+function PILL(x,y,w,h,fill){
+  return '<div style="'+BX(x,y,w,h)+"background:#"+fill+";border-radius:"+px(h*SY*PXI/2)+';"></div>';
+}
+function TBL(o){
+  var st=BX(o.x,o.y,o.w,0.1).replace(/height:[^;]+;/,"");
+  var h='<table style="'+st+'border-collapse:collapse;table-layout:fixed;font-family:'+FONT("B")+'">';
+  h+='<colgroup>'+o.colW.map(function(c){return '<col style="width:'+px(c*SX*PXI)+'">';}).join("")+'</colgroup>';
+  o.rows.forEach(function(r){
+    h+="<tr>";
+    r.forEach(function(c){
+      if(c.skip)return;
+      var cs="border:1px solid #"+C.sandd+";vertical-align:middle;";
+      cs+="height:"+px(o.rowH*SY*PXI)+";";
+      cs+="padding:"+o.pad[0]+"pt "+o.pad[1]+"pt;";
+      cs+="background:#"+(c.fill||C.white)+";color:#"+(c.color||C.teal2)+";";
+      cs+="font-size:"+(c.size||o.size)+"pt;font-weight:"+(c.bold?700:400)+";";
+      cs+="text-align:"+(c.align||"left")+";";
+      h+='<td'+(c.span?' colspan="'+c.span+'"':"")+' style="'+cs+'">'+esc(c.text)+"</td>";
+    });
+    h+="</tr>";
+  });
+  return h+"</table>";
+}
+
+function head(pgm,n){
+  var h=TX(tok(pgm.eyebrow).toUpperCase(),{x:0.6,y:0.38,w:9,h:0.28,f:"B",size:11,bold:true,color:C.terra,spacing:1.6});
+  h+=TX(tok(pgm.title),{x:0.6,y:0.66,w:10.6,h:0.62,f:"H",size:30,bold:true,color:C.teal});
+  if(n){
+    h+='<div style="'+BX(12.28,0.44,0.5,0.5)+"background:#"+C.sand+";border:1px solid #"+C.sandd+
+       ';border-radius:50%;"></div>';
+    h+=TX(String(n).padStart(2,"0"),{x:12.28,y:0.44,w:0.5,h:0.5,f:"B",size:12,bold:true,color:C.terra,align:"center",valign:"middle"});
+  }
+  return h;
+}
+function foot(){
+  return TX(footLine(),{x:0.6,y:6.94,w:7.5,h:0.28,f:"B",size:9,color:C.muted});
+}
+function shell(inner,art){
+  var bg=art?C.paper:C.page;
+  var img=(art&&S.theme.motif!=="none")
+    ?'<img class="art" src="'+artURL()+'" style="opacity:'+motifAlpha(art)+'">':'';
+  return '<div class="page" style="background:#'+bg+'">'+img+inner+'</div>';
+}
+
+/* ---------- 1 cover ---------- */
+function pageCover(pgm,n){
+  var m=S.meta,h="";
+  var lb=logoBox(1.55);
+  if(m.logo)h+='<img src="'+m.logo+'" style="'+BX(0.9,0.42,lb.w,lb.h)+'object-fit:fill">';
+  h+=TX(m.companyName.toUpperCase(),{x:0.9,y:2.16,w:9.5,h:0.3,f:"B",size:11.5,bold:true,color:C.terra,spacing:2});
+  h+=TX(m.projectName,{x:0.9,y:2.56,w:11,h:0.95,f:"H",size:48,bold:true,color:C.forest});
+  h+=TX(m.reportTitle,{x:0.9,y:3.52,w:11,h:0.5,f:"H",size:21,italic:true,color:C.slate});
+  [["Reporting period",period()],
+   ["Scope",scopeVillas()+" villas  ·  "+scopeTH()+" townhouses  ·  "+m.location],
+   ["Disciplines",m.disciplines],["Issued by",m.issuedBy]].forEach(function(r,i){
+    var y=4.32+i*0.48;
+    h+=TX(r[0],{x:0.9,y:y,w:2.4,h:0.34,f:"B",size:11,color:C.muted,valign:"middle"});
+    h+=TX(r[1],{x:3.4,y:y,w:8.4,h:0.34,f:"B",size:13,bold:true,color:C.forest,valign:"middle"});
+  });
+  h+=TX("Week "+(m.weekNo||"")+"  ·  "+fmtLong(m.issueDate),{x:0.9,y:6.5,w:6,h:0.3,f:"B",size:10,color:C.muted});
+  return shell(h,1);
+}
+
+/* ---------- 2 executive summary ---------- */
+function pageExec(pgm,n){
+  var k=S.kpi,h=head(pgm,n),lpg=trade("LPG"),subs=subTrades();
+
+  /* MEP — left */
+  h+=CARD(0.6,1.55,7.8,1.95);
+  h+=TX("MEP COMPLETION",{x:0.6,y:1.72,w:7.8,h:0.3,f:"B",size:12,bold:true,color:C.terra,spacing:2,align:"center"});
+  h+=TX(mepActual().toFixed(1)+"%",{x:0.6,y:2.02,w:7.8,h:1.0,f:"H",size:54,bold:true,color:C.teal,align:"center",valign:"middle"});
+  var sub=hasBaseline()?("Baseline "+num(k.planned).toFixed(1)+"%  ·  "+variance()+"%")
+                       :(num(k.weekly)?("+"+num(k.weekly)+"% this week"):"");
+  h+=TX(sub,{x:0.6,y:3.02,w:7.8,h:0.32,f:"B",size:12,color:C.slate,align:"center"});
+
+  subs.forEach(function(t,i){
+    var x=0.6+i*2.67;
+    h+=CARD(x,3.75,2.46,1.85,C.white);
+    h+=TX(String(t.name).toUpperCase(),{x:x,y:3.95,w:2.46,h:0.3,f:"B",size:11,bold:true,color:C.slate,spacing:1.4,align:"center"});
+    h+=TX(num(t.pct).toFixed(1)+"%",{x:x,y:4.25,w:2.46,h:0.8,f:"H",size:34,bold:true,color:C.chart,align:"center",valign:"middle"});
+    h+=TX(t.move?(t.move+"% this week"):"",{x:x,y:5.05,w:2.46,h:0.32,f:"B",size:11,color:C.muted,align:"center"});
+  });
+
+  /* LPG — right */
+  h+=CARD(8.7,1.55,4.03,1.95);
+  h+=TX("LPG COMPLETION",{x:8.7,y:1.72,w:4.03,h:0.3,f:"B",size:12,bold:true,color:C.terra,spacing:2,align:"center"});
+  h+=TX(num(lpg.pct).toFixed(1)+"%",{x:8.7,y:2.02,w:4.03,h:1.0,f:"H",size:54,bold:true,color:C.gold,align:"center",valign:"middle"});
+  h+=TX(lpg.move?(lpg.move+"% this week"):"",{x:8.7,y:3.02,w:4.03,h:0.32,f:"B",size:12,color:C.slate,align:"center"});
+  h+=CARD(8.7,3.75,4.03,1.85,C.white);
+  h+=TX("STATUS",{x:8.7,y:3.95,w:4.03,h:0.3,f:"B",size:11,bold:true,color:C.slate,spacing:1.4,align:"center"});
+  h+=TX(lpg.note||"",{x:8.95,y:4.3,w:3.53,h:1.1,f:"B",size:13,color:C.teal2,align:"center"});
+
+  return shell(h+foot());
+}
+
+/* ---------- 3 progress curve ---------- */
+function pageCurve(pgm,n){
+  var h=head(pgm,n);
+  var bw=8.35*SX*PXI, bh=4.7*SY*PXI;
+  var padL=44,padB=52,padT=40,padR=16;
+  var vals=[];S.curve.forEach(function(c){vals.push(num(c.plan),num(c.actual));});
+  var mn=Math.floor(Math.min.apply(null,vals)/5)*5-3, mx=Math.ceil(Math.max.apply(null,vals)/5)*5+3;
+  function PT(i,v){
+    var x=padL+(bw-padL-padR)*(S.curve.length<2?0.5:i/(S.curve.length-1));
+    var y=bh-padB-(bh-padB-padT)*((v-mn)/(mx-mn||1));
+    return [x,y];
+  }
+  var svg='<svg width="'+bw+'" height="'+bh+'" style="font-family:'+FONT("B")+'">';
+  svg+='<text x="'+(bw/2)+'" y="16" text-anchor="middle" font-size="13pt" fill="#'+C.teal2+'">Cumulative MEP completion (%)</text>';
+  for(var g=0;g<=4;g++){
+    var yy=bh-padB-(bh-padB-padT)*(g/4);
+    svg+='<line x1="'+padL+'" y1="'+yy+'" x2="'+(bw-padR)+'" y2="'+yy+'" stroke="#DDE7E5"/>';
+    svg+='<text x="'+(padL-8)+'" y="'+(yy+4)+'" text-anchor="end" font-size="11pt" fill="#'+C.slate+'">'+(mn+(mx-mn)*g/4).toFixed(0)+'</text>';
+  }
+  [["plan",C.muted],["actual",C.terra]].forEach(function(sr){
+    svg+='<polyline fill="none" stroke="#'+sr[1]+'" stroke-width="3" points="'+
+      S.curve.map(function(c,i){return PT(i,num(c[sr[0]])).join(",");}).join(" ")+'"/>';
+    S.curve.forEach(function(c,i){var p2=PT(i,num(c[sr[0]]));
+      svg+='<circle cx="'+p2[0]+'" cy="'+p2[1]+'" r="4" fill="#'+sr[1]+'"/>';});
+  });
+  S.curve.forEach(function(c,i){
+    svg+='<text x="'+PT(i,mn)[0]+'" y="'+(bh-padB+20)+'" text-anchor="middle" font-size="11pt" fill="#'+C.slate+'">'+esc(c.week)+'</text>';
+  });
+  svg+='<text x="'+(bw/2-70)+'" y="'+(bh-10)+'" font-size="11pt" fill="#'+C.slate+'">'+
+       '<tspan fill="#'+C.muted+'">▬</tspan> Baseline plan</text>';
+  svg+='<text x="'+(bw/2+50)+'" y="'+(bh-10)+'" font-size="11pt" fill="#'+C.slate+'">'+
+       '<tspan fill="#'+C.terra+'">▬</tspan> Actual</text>';
+  svg+='</svg>';
+  h+='<div style="'+BX(0.6,1.5,8.35,4.7)+'">'+svg+'</div>';
+  [["Planned to date",hasBaseline()?(num(S.kpi.planned)+"%"):"—",C.slate],["Actual to date",mepActual().toFixed(1)+"%",C.terra],
+   ["Variance",hasBaseline()?(variance()+"%"):"—",C.red],["Weekly earned","+"+num(S.kpi.weekly)+"%",C.teal]].forEach(function(r,i){
+    var y=1.62+i*0.98;
+    h+=CARD(9.3,y,3.43,0.82,C.white);
+    h+=TX(r[0],{x:9.55,y:y+0.12,w:2,h:0.58,f:"B",size:11.5,color:C.slate,valign:"middle"});
+    h+=TX(r[1],{x:11,y:y+0.12,w:1.5,h:0.58,f:"H",size:20,bold:true,color:r[2],align:"right",valign:"middle"});
+  });
+  h+=TX(S.curveNote,{x:9.3,y:5.66,w:3.43,h:0.6,f:"B",size:11,italic:true,color:C.slate});
+  return shell(h+foot());
+}
+
+/* ---------- 4 by discipline ---------- */
+function pageTrades(pgm,n){
+  var h=head(pgm,n);
+  var bw=7.5*SX*PXI, bh=4.6*SY*PXI, padL=150, padR=70, padT=14, padB=34;
+  var rows=S.trades.length||1, band=(bh-padT-padB)/rows;
+  var svg='<svg width="'+bw+'" height="'+bh+'" style="font-family:'+FONT("B")+'">';
+  for(var g=0;g<=10;g++){
+    var gx=padL+(bw-padL-padR)*(g/10);
+    svg+='<line x1="'+gx+'" y1="'+padT+'" x2="'+gx+'" y2="'+(bh-padB)+'" stroke="#DDE7E5"/>';
+    svg+='<text x="'+gx+'" y="'+(bh-padB+18)+'" text-anchor="middle" font-size="11pt" fill="#'+C.slate+'">'+(g*10)+'</text>';
+  }
+  S.trades.forEach(function(t,i){
+    var y=padT+band*i, bhgt=band*0.55, w=(bw-padL-padR)*(num(t.pct)/100);
+    svg+='<rect x="'+padL+'" y="'+(y+(band-bhgt)/2)+'" width="'+w+'" height="'+bhgt+'" fill="#'+C.chart+'"/>';
+    svg+='<text x="'+(padL-10)+'" y="'+(y+band/2+5)+'" text-anchor="end" font-size="12.5pt" fill="#'+C.teal2+'">'+esc(t.name)+'</text>';
+    svg+='<text x="'+(padL+w+8)+'" y="'+(y+band/2+5)+'" font-size="12pt" fill="#'+C.teal2+'">'+num(t.pct).toFixed(1)+'%</text>';
+  });
+  svg+='</svg>';
+  h+='<div style="'+BX(0.6,1.55,7.5,4.6)+'">'+svg+'</div>';
+  h+=CARD(8.45,1.55,4.28,4.6,C.white);
+  h+=TX("Weekly movement",{x:8.72,y:1.75,w:3.75,h:0.3,f:"B",size:12.5,bold:true,color:C.teal});
+  var pitch=Math.min(1.0,3.9/Math.max(S.trades.length,1));
+  S.trades.forEach(function(t,i){
+    var y=2.3+i*pitch;
+    h+=TX(t.name,{x:8.72,y:y,w:2.4,h:0.3,f:"B",size:12,bold:true,color:C.teal2});
+    h+=TX(t.move+"%",{x:11.1,y:y,w:1.37,h:0.3,f:"B",size:12,bold:true,color:C.green,align:"right"});
+    h+=TX(t.note,{x:8.72,y:y+0.29,w:3.75,h:0.3,f:"B",size:10.5,italic:true,color:C.slate});
+  });
+  return shell(h+foot());
+}
+
+/* ---------- 5 work categories ---------- */
+function wrap2(str,perLine){
+  var w=String(str||"").split(/\s+/), lines=[""], i;
+  for(i=0;i<w.length;i++){
+    var t=(lines[lines.length-1]?lines[lines.length-1]+" ":"")+w[i];
+    if(t.length>perLine&&lines[lines.length-1]&&lines.length<2)lines.push(w[i]);
+    else lines[lines.length-1]=t;
+  }
+  return lines;
+}
+function pageStages(pgm,n){
+  var h=head(pgm,n), rows=S.stages||[];
+  var bw=12.13*SX*PXI, bh=4.6*SY*PXI;
+  var padL=58,padR=18,padT=30,padB=76;
+  var plot=bh-padT-padB, gw=(bw-padL-padR)/Math.max(rows.length,1);
+  var svg='<svg width="'+bw+'" height="'+bh+'" style="font-family:'+FONT("B")+'">';
+  for(var g=0;g<=10;g++){
+    var v=g*10, y=bh-padB-plot*(g/10);
+    svg+='<line x1="'+padL+'" y1="'+y+'" x2="'+(bw-padR)+'" y2="'+y+'" stroke="'+(g?"#E4ECEA":"#C6D4D2")+'"/>';
+    svg+='<text x="'+(padL-10)+'" y="'+(y+4)+'" text-anchor="end" font-size="10pt" fill="#'+C.slate+'">'+v+'%</text>';
+  }
+  rows.forEach(function(st,i){
+    var pct=Math.max(0,Math.min(100,num(st.pct)));
+    var cx=padL+gw*i+gw/2, bwid=Math.min(gw*0.42,58);
+    var hgt=plot*(pct/100), y=bh-padB-hgt;
+    svg+='<rect x="'+(cx-bwid/2)+'" y="'+y+'" width="'+bwid+'" height="'+Math.max(hgt,0)+'" rx="3" fill="#'+toneHex(st.tone)+'"/>';
+    svg+='<text x="'+cx+'" y="'+(y-9)+'" text-anchor="middle" font-size="10.5pt" font-weight="700" fill="#'+
+         (pct?toneHex(st.tone):C.muted)+'">'+pct.toFixed(1)+'%</text>';
+    wrap2(st.name,13).forEach(function(ln,k){
+      svg+='<text x="'+cx+'" y="'+(bh-padB+22+k*16)+'" text-anchor="middle" font-size="11pt" fill="#'+C.teal2+'">'+esc(ln)+'</text>';
+    });
+  });
+  svg+='</svg>';
+  h+='<div style="'+BX(0.6,1.55,12.13,4.6)+'">'+svg+'</div>';
+  h+=TX(rows.length+" work categories  ·  average "+stageAvg().toFixed(1)+"%  ·  "+
+        scopeVillas()+" villas across "+scopeTH()+" townhouses.  "+S.stageNote,
+        {x:0.6,y:6.32,w:12.13,h:0.32,f:"B",size:12,color:C.teal2});
+  return shell(h+foot());
+}
+
+/* ---------- 6 IPT ---------- */
+function pageIpt(pgm,n){
+  var h=head(pgm,n),t=iptTotals();
+  var rowH=Math.min(0.295,4.55/(S.ipt.length+(iptSplit().extra.length?2:1)));
+  var q=iptSplit();
+  var rows=[["Activity","TH","Villas","Planned %","Actual %","Value (AED)","Weightage %","Remarks"].map(function(c){
+    return {text:c,fill:C.teal,color:C.white,bold:true,size:10};})];
+  function body(list,off){
+    list.forEach(function(r,ri){
+      rows.push([r.activity,r.th,String(r.villas),num(r.plan)+"%",num(r.pct)+"%",money(r.value),
+                 (weightOf(r).toFixed(2)+"%"+(r.extra?" *":"")),r.remarks].map(function(c,ci){
+        return {text:c,fill:(ri+off)%2===0?C.white:C.sand,
+                color:ci===0?C.teal:(ci===4?C.terra:(ci===6?(r.extra?C.gold:C.chart):C.teal2)),bold:ci===0||ci===4||ci===6,
+                size:9.5,align:(ci>=2&&ci<=6)?"center":"left"};}));
+    });
+  }
+  body(q.main,0);
+  if(q.extra.length){
+    rows.push([{text:"EXTRA IPTs — activities outside the planned IPT",span:8,fill:C.sandd,color:C.teal,bold:true,size:9.5},
+               {skip:true},{skip:true},{skip:true},{skip:true},{skip:true},{skip:true},{skip:true}]);
+    body(q.extra,1);
+  }
+  h+=TBL({x:0.6,y:1.62,w:12.13,colW:[2.9,1.1,0.7,0.95,0.95,1.25,1.05,3.23],rowH:rowH,rows:rows,size:9.5,pad:[3,8]});
+  h+=TX(earnedLine(),{x:0.6,y:6.30,w:12.13,h:0.30,f:"B",size:12,bold:true,color:C.terra});
+  return shell(h+foot());
+}
+
+/* ---------- 7 manpower cost ---------- */
+function pageRes(pgm,n){
+  var h=head(pgm,n), rows=S.costs||[];
+  var bw=8.35*SX*PXI, bh=4.6*SY*PXI;
+  var padL=74, padR=18, padT=52, padB=54;
+  var maxV=Math.max.apply(null,rows.map(function(c){return Math.max(num(c.planned),num(c.actual));}).concat([1]));
+  var step=Math.pow(10,Math.floor(Math.log(maxV)/Math.LN10)); 
+  var top=Math.ceil(maxV/step)*step; if(top===maxV)top+=step*0.25;
+  var plot=bh-padT-padB, gw=(bw-padL-padR)/Math.max(rows.length,1);
+  var svg='<svg width="'+bw+'" height="'+bh+'" style="font-family:'+FONT("B")+'">';
+  for(var g=0;g<=4;g++){
+    var v=top*g/4, y=bh-padB-plot*(g/4);
+    svg+='<line x1="'+padL+'" y1="'+y+'" x2="'+(bw-padR)+'" y2="'+y+'" stroke="#DDE7E5"/>';
+    svg+='<text x="'+(padL-10)+'" y="'+(y+4)+'" text-anchor="end" font-size="10.5pt" fill="#'+C.slate+'">'+kfmt(v)+'</text>';
+  }
+  rows.forEach(function(c,i){
+    var gx=padL+gw*i, bwid=Math.min(gw*0.26,64), gap=gw*0.07;
+    [["planned",C.chart],["actual",C.terra]].forEach(function(sr,j){
+      var v=num(c[sr[0]]), hgt=plot*(v/top), x=gx+gw/2-bwid-gap/2+j*(bwid+gap), y=bh-padB-hgt;
+      svg+='<rect x="'+x+'" y="'+y+'" width="'+bwid+'" height="'+Math.max(hgt,0)+'" rx="3" fill="#'+sr[1]+'"/>';
+      svg+='<text x="'+(x+bwid/2)+'" y="'+(y-8)+'" text-anchor="middle" font-size="10.5pt" font-weight="700" fill="#'+
+           (v?sr[1]:C.muted)+'">'+money(v)+'</text>';
+    });
+    svg+='<text x="'+(gx+gw/2)+'" y="'+(bh-padB+22)+'" text-anchor="middle" font-size="12pt" font-weight="700" fill="#'+C.teal+'">'+esc(c.party)+'</text>';
+  });
+  var lx=padL;
+  [["Cost planned",C.chart],["Actual cost",C.terra]].forEach(function(l){
+    svg+='<rect x="'+lx+'" y="'+(bh-22)+'" width="11" height="11" rx="2" fill="#'+l[1]+'"/>';
+    svg+='<text x="'+(lx+16)+'" y="'+(bh-13)+'" font-size="11pt" fill="#'+C.slate+'">'+l[0]+'</text>';
+    lx+=l[0].length*7+34;
+  });
+  svg+='<text x="'+padL+'" y="20" font-size="11pt" fill="#'+C.slate+'">'+cur()+'</text>';
+  svg+='</svg>';
+  h+='<div style="'+BX(0.6,1.55,8.35,4.6)+'">'+svg+'</div>';
+
+  var tp=costTot("planned"), ta=costTot("actual");
+  [["Total cost planned",cur()+" "+money(tp),C.chart],
+   ["Total actual cost",cur()+" "+money(ta),C.terra],
+   ["Spent against plan",(tp?(ta/tp*100).toFixed(1):"0.0")+"%",C.teal]].forEach(function(r,i){
+    var y=1.55+i*1.55;
+    h+=CARD(8.85,y,3.88,1.4,C.white);
+    h+=TX(r[0],{x:9.1,y:y+0.2,w:3.4,h:0.3,f:"B",size:12,bold:true,color:C.slate});
+    h+=TX(r[1],{x:9.1,y:y+0.55,w:3.4,h:0.7,f:"H",size:26,bold:true,color:r[2],valign:"middle"});
+  });
+  h+=TX(S.costNote||"",{x:0.6,y:6.32,w:12.13,h:0.32,f:"B",size:12,color:C.teal2});
+  return shell(h+foot());
+}
+
+/* ---------- 8 concerns ---------- */
+function pageRisk(pgm,n){
+  var h=head(pgm,n);
+  S.concerns.slice(0,6).forEach(function(c,i){
+    var y=1.52+i*1.0;
+    h+=CARD(0.6,y,12.13,0.88,C.white);
+    h+=PILL(0.82,y+0.28,1.0,0.32,sevHex(c.sev));
+    h+=TX(c.sev,{x:0.82,y:y+0.28,w:1.0,h:0.32,f:"B",size:9.5,bold:true,color:C.white,align:"center",valign:"middle",spacing:0.8});
+    h+=TX(c.title,{x:2.0,y:y+0.11,w:7.4,h:0.3,f:"B",size:13,bold:true,color:C.teal});
+    h+=TX(c.detail,{x:2.0,y:y+0.41,w:8.5,h:0.42,f:"B",size:10.5,color:C.slate});
+    h+=TX("Owner: "+c.owner,{x:10.7,y:y+0.28,w:1.85,h:0.32,f:"B",size:10.5,color:C.teal2,align:"right",valign:"middle"});
+  });
+  return shell(h+foot());
+}
+
+/* ---------- 9 procurement ---------- */
+function pageProc(pgm,n){
+  var h=head(pgm,n);
+  var rowH=Math.min(0.52,4.2/(S.procurement.length+1));
+  var rows=[["Material / package","Qty","Status","ETA on site","Impact if delayed"].map(function(c){
+    return {text:c,fill:C.teal,color:C.white,bold:true,size:12};})];
+  S.procurement.forEach(function(r,ri){
+    rows.push([r.item,r.qty,r.status,r.eta,r.impact].map(function(c,ci){
+      return {text:c,fill:ri%2===0?C.white:C.sand,
+        color:ci===2?statusHex(r.status):(ci===0?C.teal:C.teal2),bold:ci===0||ci===2,
+        size:11.5,align:(ci===1||ci===3)?"center":"left"};}));
+  });
+  h+=TBL({x:0.6,y:1.62,w:12.13,colW:[3.5,1.35,2.05,2.13,3.1],rowH:rowH,rows:rows,size:11.5,pad:[6,10]});
+  h+=TX(S.procNote,{x:0.6,y:6.4,w:12.13,h:0.42,f:"B",size:12.5,color:C.teal2});
+  return shell(h+foot());
+}
+
+/* ---------- 10 look ahead ---------- */
+function pageLook(pgm,n){
+  var h=head(pgm,n);
+  S.lookahead.slice(0,6).forEach(function(l,i){
+    var col=i%2,row=Math.floor(i/2),x=0.6+col*6.25,y=1.66+row*1.55;
+    h+=CARD(x,y,5.88,1.2,C.white);
+    h+=ELL(x+0.24,y+0.24,0.42,C.terra);
+    h+=TX(String(i+1),{x:x+0.24,y:y+0.24,w:0.42,h:0.42,f:"B",size:13,bold:true,color:C.white,align:"center",valign:"middle"});
+    h+=TX(l.title,{x:x+0.82,y:y+0.18,w:3.5,h:0.32,f:"B",size:13,bold:true,color:C.teal});
+    h+=TX(l.th,{x:x+4.3,y:y+0.18,w:1.32,h:0.32,f:"B",size:11.5,bold:true,color:C.terra,align:"right"});
+    h+=TX(l.detail,{x:x+0.82,y:y+0.54,w:4.8,h:0.62,f:"B",size:11,color:C.slate});
+  });
+  h+=TX(S.lookNote,{x:0.6,y:6.24,w:12.13,h:0.34,f:"B",size:12.5,bold:true,color:C.teal2});
+  return shell(h+foot());
+}
+
+/* ---------- 11 closing ---------- */
+function pageClose(pgm,n){
+  var m=S.meta,h="";
+  var lb=logoBox(1.25);
+  if(m.logo)h+='<img src="'+m.logo+'" style="'+BX(0.9,0.5,lb.w,lb.h)+'object-fit:fill">';
+  h+=TX(tok(pgm.eyebrow).toUpperCase(),{x:0.9,y:1.9,w:8,h:0.3,f:"B",size:11.5,bold:true,color:C.terra,spacing:2});
+  h+=TX(S.closing.headline,{x:0.9,y:2.3,w:11.5,h:1.1,f:"H",size:34,bold:true,color:C.teal});
+  S.closing.bullets.slice(0,4).forEach(function(b,i){
+    var y=3.75+i*0.72;
+    h+=ELL(0.9,y+0.09,0.22,C.terra);
+    h+=TX(b.text,{x:1.32,y:y,w:10.6,h:0.6,f:"B",size:15,color:C.teal2});
+  });
+  h+=TX("Prepared by "+m.issuedBy+"  ·  "+m.companyName,{x:0.9,y:6.2,w:11.5,h:0.3,f:"B",size:11,color:C.muted});
+  h+=TX("Next report: "+nextReportLabel(),{x:0.9,y:6.52,w:11.5,h:0.3,f:"B",size:11,bold:true,color:C.terra});
+  return shell(h,0.72);
+}
+
+/* ---------- free text ---------- */
+function pageText(pgm,n){
+  var body=String(pgm.body||"").split(/\n{2,}/).filter(function(x){return x.trim();});
+  var h=head(pgm,n);
+  var inner=body.length
+    ? body.map(function(par){return '<p style="margin:0 0 10pt">'+esc(par)+'</p>';}).join("")
+    : '<p style="margin:0;color:#'+C.muted+'">Add text for this page in the Pages section.</p>';
+  h+=TX(inner,{x:0.6,y:1.6,w:9.6,h:4.6,f:"B",size:14,color:C.teal2,line:22,raw:true});
+  return shell(h+foot());
+}
+
+/* IPT chart geometry — one source of truth, rendered by both the preview and PowerPoint */
+function iptChartGeom(){
+  var rows=iptOrdered(), cost=iptCost();
+  var X=0.6, Y=1.55, W=12.13, H=4.6;
+  var padL=0.62, padR=0.19, padT=0.40, padB=0.92;
+  var plot=H-padT-padB, yB=Y+padT+plot;
+  var maxW=1;
+  rows.forEach(function(r){maxW=Math.max(maxW,cost?weightOf(r):100);});
+  var step=maxW>20?5:1, top=Math.ceil(maxW/step)*step;
+  if(top<=maxW)top+=step;
+  var n=Math.max(rows.length,1), gw=(W-padL-padR)/n;
+  var bwid=Math.min(gw*0.30,0.27), gap=Math.max(gw*0.05,0.03);
+  var g={grid:[],bars:[],texts:[],legend:[]};
+
+  for(var i=0;i<=5;i++){
+    var v=top*i/5, y=yB-plot*(i/5);
+    g.grid.push({x:X+padL,y:y,w:W-padL-padR,first:i===0});
+    g.texts.push({x:X,y:y-0.115,w:padL-0.10,h:0.23,text:v.toFixed(top<10?1:0)+"%",
+                  align:"right",size:10,color:C.slate});
+  }
+
+  rows.forEach(function(r,i){
+    var cx=X+padL+gw*i+gw/2, Wt=cost?weightOf(r):100;
+    var anchor=null;                                  // the taller bar carries the label stack
+    [["plan",C.chart],["pct",C.terra]].forEach(function(sr,j){
+      var own=Math.max(0,Math.min(100,num(r[sr[0]])));
+      var hgt=plot*((Wt*own/100)/top), x=cx-bwid-gap/2+j*(bwid+gap);
+      if(hgt>0)g.bars.push({x:x,y:yB-hgt,w:bwid,h:hgt,fill:sr[1]});
+      g.texts.push({x:x-0.16,y:yB-hgt-0.20,w:bwid+0.32,h:0.19,text:own+"%",
+                    align:"center",size:8,bold:true,color:sr[1]});
+      if(!anchor||hgt>anchor.h)anchor={x:x,h:hgt};
+    });
+    var lw=bwid+0.5;
+    g.texts.push({x:anchor.x+bwid/2-lw/2,y:yB-anchor.h-0.40,w:lw,h:0.20,
+                  text:"("+Wt.toFixed(top<10?2:1)+"%)",
+                  align:"center",size:8.5,bold:true,color:C.teal2});
+    wrap2((r.extra?"* ":"")+r.activity,15).forEach(function(ln,k){
+      g.texts.push({x:cx-gw/2,y:yB+0.08+k*0.16,w:gw,h:0.17,text:ln,align:"center",
+                    size:8.5,color:r.extra?C.gold:C.teal2});
+    });
+  });
+
+  var lx=X+padL;
+  [["Planned",C.chart],["Actual",C.terra]]
+    .concat(iptSplit().extra.length?[["* Extra IPT",C.gold]]:[]).forEach(function(l){
+    g.legend.push({x:lx,y:Y+H-0.24,w:0.13,h:0.13,fill:l[1]});
+    g.texts.push({x:lx+0.2,y:Y+H-0.28,w:1.5,h:0.22,text:l[0],align:"left",size:11,color:C.slate});
+    lx+=0.2+String(l[0]).length*0.075+0.34;
+  });
+  return g;
+}
+
+function pageIptChart(pgm,n){
+  var h=head(pgm,n), g=iptChartGeom();
+  g.grid.forEach(function(l){ h+=RECT(l.x,l.y,l.w,0.012,l.first?"C6D4D2":"E4ECEA"); });
+  g.bars.forEach(function(b){ h+=RECT(b.x,b.y,b.w,b.h,b.fill,null,0.02); });
+  g.legend.forEach(function(l){ h+=RECT(l.x,l.y,l.w,l.h,l.fill,null,0.02); });
+  g.texts.forEach(function(t){
+    h+=TX(t.text,{x:t.x,y:t.y,w:t.w,h:t.h,f:"B",size:t.size,bold:t.bold,color:t.color,align:t.align});
+  });
+  h+=TX(earnedLine(),{x:0.6,y:6.30,w:12.13,h:0.30,f:"B",size:12,bold:true,color:C.terra});
+  return shell(h+foot());
+}
+
+var PREVIEW={cover:pageCover,exec:pageExec,curve:pageCurve,trades:pageTrades,stages:pageStages,
+  ipt:pageIpt,iptchart:pageIptChart,res:pageRes,risk:pageRisk,proc:pageProc,look:pageLook,close:pageClose,text:pageText};
+
+function renderPreview(){
+  applyTheme();
+  var host=document.getElementById("pages"),n=0;
+  var list=activePages();
+  if(!list.length){host.innerHTML='<p style="text-align:center;color:#5D7F89;padding:40px">Every page is switched off. Turn one on in the Pages section.</p>';return;}
+  host.innerHTML=list.map(function(pgm){
+    var f=PREVIEW[pgm.type]||pageText;
+    if(numbered(pgm.type))n++;
+    return '<div class="pgshell">'+f(pgm,numbered(pgm.type)?n:0)+'</div>';
+  }).join("");
+  applyZoom();
+}
+function applyZoom(){
+  var z=document.getElementById("zoom").value/100;
+  document.getElementById("zoomv").textContent=Math.round(z*100)+"%";
+  document.querySelectorAll(".pgshell").forEach(function(el){
+    el.style.transform="scale("+z+")";
+    el.style.height=(PGH*z+22)+"px";
+  });
+}
+
+/* =====================================================================
+   6. POWERPOINT EXPORT
+   ===================================================================== */
+function T(o,shape){
+  if(o.x===0&&o.y===0&&o.w===13.333){o.w=SLW;o.h=SLH;return o;}
+  if(shape==="ellipse"&&o.w===o.h){var d=o.w*SX;o.y=fy(o.y)+(o.h*SY-d)/2;o.x=fx(o.x);o.w=d;o.h=d;return o;}
+  o.x=fx(o.x);o.y=fy(o.y);
+  if(typeof o.w==="number")o.w*=SX;
+  if(typeof o.h==="number")o.h*=SY;
+  if(Array.isArray(o.colW))o.colW=o.colW.map(function(c){return c*SX;});
+  if(typeof o.rowH==="number")o.rowH*=SY;
+  return o;
+}
+function SH(){return{type:"outer",color:"C3BFB2",blur:10,offset:2,angle:90,opacity:0.4};}
+
+async function buildPptx(){
+  applyTheme();
+  var art=await artPng();
+  var p=new PptxGenJS();
+  p.defineLayout({name:"A4L",width:SLW,height:SLH});
+  p.layout="A4L";
+  p.author=S.meta.issuedBy; p.company=S.meta.companyName;
+  p.title=S.meta.projectName+" — "+S.meta.reportTitle;
+
+  function slide(){
+    var s=p.addSlide();
+    s.background={color:C.page};
+    var oT=s.addText.bind(s),oS=s.addShape.bind(s),oI=s.addImage.bind(s),oC=s.addChart.bind(s),oB=s.addTable.bind(s);
+    s.addText=function(t,o){return oT(t,T(o));};
+    s.addShape=function(t,o){return oS(t,T(o,t));};
+    s.addImage=function(o){return oI(T(o));};
+    s.addChart=function(t,d,o){return oC(t,d,T(o));};
+    s.addTable=function(r,o){return oB(r,T(o));};
+    return s;
+  }
+  function hdr(s,pgm,n){
+    s.addText(tok(pgm.eyebrow).toUpperCase(),{isTextBox:true,x:0.6,y:0.38,w:9,h:0.28,fontFace:"Calibri",fontSize:11,bold:true,color:C.terra,charSpacing:1.6,margin:0});
+    s.addText(tok(pgm.title),{isTextBox:true,x:0.6,y:0.66,w:10.6,h:0.62,fontFace:"Cambria",fontSize:30,bold:true,color:C.teal,margin:0});
+    if(!n)return;
+    s.addShape(p.ShapeType.ellipse,{x:12.28,y:0.44,w:0.5,h:0.5,fill:{color:C.sand},line:{color:C.sandd,width:1}});
+    s.addText(String(n).padStart(2,"0"),{isTextBox:true,x:12.28,y:0.44,w:0.5,h:0.5,fontFace:"Calibri",fontSize:12,bold:true,color:C.terra,align:"center",valign:"middle",margin:0});
+  }
+  function ftr(s){
+    s.addText(footLine(),{isTextBox:true,x:0.6,y:6.94,w:7.5,h:0.28,fontFace:"Calibri",fontSize:9,color:C.muted,margin:0});
+  }
+  function card(s,x,y,w,h,fill){
+    s.addShape(p.ShapeType.roundRect,{x:x,y:y,w:w,h:h,rectRadius:0.06,fill:{color:fill||C.sand},line:{color:C.sandd,width:1},shadow:SH()});
+  }
+
+  var PPT={};
+  PPT.cover=function(s,pgm,n){
+    s.background={color:C.paper};
+  if(art)s.addImage({data:art,x:0,y:0,w:13.333,h:7.5,transparency:100-motifAlpha(1)*100});
+  var lb=logoBox(1.55);
+    if(S.meta.logo)s.addImage({data:S.meta.logo,x:0.9,y:0.42,w:lb.w,h:lb.h});
+  s.addText(S.meta.companyName.toUpperCase(),{isTextBox:true,x:0.9,y:2.16,w:9.5,h:0.3,fontFace:"Calibri",fontSize:11.5,bold:true,color:C.terra,charSpacing:2,margin:0});
+  s.addText(S.meta.projectName,{isTextBox:true,x:0.9,y:2.56,w:11,h:0.95,fontFace:"Cambria",fontSize:48,bold:true,color:C.forest,margin:0});
+  s.addText(S.meta.reportTitle,{isTextBox:true,x:0.9,y:3.52,w:11,h:0.5,fontFace:"Cambria",fontSize:21,color:C.slate,italic:true,margin:0});
+  [["Reporting period",period()],
+   ["Scope",scopeVillas()+" villas  ·  "+scopeTH()+" townhouses  ·  "+S.meta.location],
+   ["Disciplines",S.meta.disciplines],["Issued by",S.meta.issuedBy]].forEach(function(m,i){
+    var y=4.32+i*0.48;
+    s.addText(m[0],{isTextBox:true,x:0.9,y:y,w:2.4,h:0.34,fontFace:"Calibri",fontSize:11,color:C.muted,margin:0,valign:"middle"});
+    s.addText(m[1],{isTextBox:true,x:3.4,y:y,w:8.4,h:0.34,fontFace:"Calibri",fontSize:13,bold:true,color:C.forest,margin:0,valign:"middle"});
+  });
+  s.addText("Week "+(S.meta.weekNo||"")+"  ·  "+fmtLong(S.meta.issueDate),{isTextBox:true,x:0.9,y:6.5,w:6,h:0.3,fontFace:"Calibri",fontSize:10,color:C.muted,margin:0});
+
+  };
+  PPT.exec=function(s,pgm,n){
+    var k=S.kpi,lpg=trade("LPG"),subs=subTrades();
+
+    card(s,0.6,1.55,7.8,1.95);
+    s.addText("MEP COMPLETION",{isTextBox:true,x:0.6,y:1.72,w:7.8,h:0.3,fontFace:"Calibri",fontSize:12,bold:true,color:C.terra,charSpacing:2,align:"center",margin:0});
+    s.addText(mepActual().toFixed(1)+"%",{isTextBox:true,x:0.6,y:2.02,w:7.8,h:1.0,fontFace:"Cambria",fontSize:54,bold:true,color:C.teal,align:"center",valign:"middle",margin:0});
+    var sub=hasBaseline()?("Baseline "+num(k.planned).toFixed(1)+"%  ·  "+variance()+"%")
+                         :(num(k.weekly)?("+"+num(k.weekly)+"% this week"):"");
+    s.addText(sub,{isTextBox:true,x:0.6,y:3.02,w:7.8,h:0.32,fontFace:"Calibri",fontSize:12,color:C.slate,align:"center",margin:0});
+
+    subs.forEach(function(t,i){
+      var x=0.6+i*2.67;
+      card(s,x,3.75,2.46,1.85,C.white);
+      s.addText(String(t.name).toUpperCase(),{isTextBox:true,x:x,y:3.95,w:2.46,h:0.3,fontFace:"Calibri",fontSize:11,bold:true,color:C.slate,charSpacing:1.4,align:"center",margin:0});
+      s.addText(num(t.pct).toFixed(1)+"%",{isTextBox:true,x:x,y:4.25,w:2.46,h:0.8,fontFace:"Cambria",fontSize:34,bold:true,color:C.chart,align:"center",valign:"middle",margin:0});
+      s.addText(t.move?(t.move+"% this week"):"",{isTextBox:true,x:x,y:5.05,w:2.46,h:0.32,fontFace:"Calibri",fontSize:11,color:C.muted,align:"center",margin:0});
+    });
+
+    card(s,8.7,1.55,4.03,1.95);
+    s.addText("LPG COMPLETION",{isTextBox:true,x:8.7,y:1.72,w:4.03,h:0.3,fontFace:"Calibri",fontSize:12,bold:true,color:C.terra,charSpacing:2,align:"center",margin:0});
+    s.addText(num(lpg.pct).toFixed(1)+"%",{isTextBox:true,x:8.7,y:2.02,w:4.03,h:1.0,fontFace:"Cambria",fontSize:54,bold:true,color:C.gold,align:"center",valign:"middle",margin:0});
+    s.addText(lpg.move?(lpg.move+"% this week"):"",{isTextBox:true,x:8.7,y:3.02,w:4.03,h:0.32,fontFace:"Calibri",fontSize:12,color:C.slate,align:"center",margin:0});
+    card(s,8.7,3.75,4.03,1.85,C.white);
+    s.addText("STATUS",{isTextBox:true,x:8.7,y:3.95,w:4.03,h:0.3,fontFace:"Calibri",fontSize:11,bold:true,color:C.slate,charSpacing:1.4,align:"center",margin:0});
+    s.addText(lpg.note||"",{isTextBox:true,x:8.95,y:4.3,w:3.53,h:1.1,fontFace:"Calibri",fontSize:13,color:C.teal2,align:"center",margin:0});
+    ftr(s);
+  };
+  PPT.curve=function(s,pgm,n){
+  var labels=S.curve.map(function(c){return c.week;});
+  var all=S.curve.map(function(c){return [num(c.plan),num(c.actual)];}).flat();
+  s.addChart(p.ChartType.line,[
+    {name:"Baseline plan",labels:labels,values:S.curve.map(function(c){return num(c.plan);})},
+    {name:"Actual",labels:labels,values:S.curve.map(function(c){return num(c.actual);})}
+  ],{x:0.6,y:1.5,w:8.35,h:4.7,showTitle:true,title:"Cumulative MEP completion (%)",
+     titleFontFace:"Calibri",titleFontSize:13,titleColor:C.teal2,chartColors:[C.muted,C.terra],
+     lineSize:3,lineSmooth:false,showLegend:true,legendPos:"b",legendFontFace:"Calibri",legendFontSize:11,legendColor:C.slate,
+     catAxisLabelColor:C.slate,catAxisLabelFontFace:"Calibri",catAxisLabelFontSize:11,
+     valAxisLabelColor:C.slate,valAxisLabelFontFace:"Calibri",valAxisLabelFontSize:11,
+     valAxisMinVal:Math.floor(Math.min.apply(null,all)/5)*5-3,valAxisMaxVal:Math.ceil(Math.max.apply(null,all)/5)*5+3,
+     valGridLine:{color:"DDE7E5",size:1},catGridLine:{style:"none"}});
+  [["Planned to date",hasBaseline()?(num(S.kpi.planned)+"%"):"—",C.slate],["Actual to date",mepActual().toFixed(1)+"%",C.terra],
+   ["Variance",hasBaseline()?(variance()+"%"):"—",C.red],["Weekly earned","+"+num(S.kpi.weekly)+"%",C.teal]].forEach(function(r,i){
+    var y=1.62+i*0.98; card(s,9.3,y,3.43,0.82,C.white);
+    s.addText(r[0],{isTextBox:true,x:9.55,y:y+0.12,w:2,h:0.58,fontFace:"Calibri",fontSize:11.5,color:C.slate,margin:0,valign:"middle"});
+    s.addText(r[1],{isTextBox:true,x:11,y:y+0.12,w:1.5,h:0.58,fontFace:"Cambria",fontSize:20,bold:true,color:r[2],align:"right",margin:0,valign:"middle"});
+  });
+  s.addText(S.curveNote,{isTextBox:true,x:9.3,y:5.66,w:3.43,h:0.6,fontFace:"Calibri",fontSize:11,color:C.slate,italic:true,margin:0});
+  ftr(s);
+
+  };
+  PPT.trades=function(s,pgm,n){
+  var tr=S.trades.slice().reverse();
+  s.addChart(p.ChartType.bar,[{name:"Complete (%)",labels:tr.map(function(t){return t.name;}),values:tr.map(function(t){return num(t.pct);})}],
+    {x:0.6,y:1.55,w:7.5,h:4.6,barDir:"bar",barGapWidthPct:55,chartColors:[C.chart],showTitle:false,
+     showValue:true,dataLabelPosition:"outEnd",dataLabelColor:C.teal2,dataLabelFontFace:"Calibri",dataLabelFontSize:12,dataLabelFormatCode:'0.0"%"',
+     showLegend:false,catAxisLabelColor:C.teal2,catAxisLabelFontFace:"Calibri",catAxisLabelFontSize:12.5,
+     valAxisLabelColor:C.slate,valAxisLabelFontFace:"Calibri",valAxisLabelFontSize:11,valAxisMaxVal:100,valAxisMinVal:0,
+     valGridLine:{color:"DDE7E5",size:1},catGridLine:{style:"none"}});
+  card(s,8.45,1.55,4.28,4.6,C.white);
+  s.addText("Weekly movement",{isTextBox:true,x:8.72,y:1.75,w:3.75,h:0.3,fontFace:"Calibri",fontSize:12.5,bold:true,color:C.teal,margin:0});
+  var pitch=Math.min(1.0,3.9/Math.max(S.trades.length,1));
+  S.trades.forEach(function(t,i){
+    var y=2.3+i*pitch;
+    s.addText(t.name,{isTextBox:true,x:8.72,y:y,w:2.4,h:0.3,fontFace:"Calibri",fontSize:12,bold:true,color:C.teal2,margin:0});
+    s.addText(t.move+"%",{isTextBox:true,x:11.1,y:y,w:1.37,h:0.3,fontFace:"Calibri",fontSize:12,bold:true,color:C.green,align:"right",margin:0});
+    s.addText(t.note,{isTextBox:true,x:8.72,y:y+0.29,w:3.75,h:0.3,fontFace:"Calibri",fontSize:10.5,color:C.slate,italic:true,margin:0});
+  });
+  ftr(s);
+
+  };
+  PPT.stages=function(s,pgm,n){
+    var rows=S.stages||[];
+    s.addChart(p.ChartType.bar,[{name:"Complete (%)",
+      labels:rows.map(function(c){return c.name;}),
+      values:rows.map(function(c){return Math.max(0,Math.min(100,num(c.pct)));})}],
+      {x:0.6,y:1.55,w:12.13,h:4.6,barDir:"col",barGapWidthPct:110,
+       chartColors:rows.map(function(c){return toneHex(c.tone);}),
+       showTitle:false,showLegend:false,
+       showValue:true,dataLabelPosition:"outEnd",dataLabelColor:C.teal2,
+       dataLabelFontFace:"Calibri",dataLabelFontSize:10.5,dataLabelFormatCode:'0.0"%"',
+       catAxisLabelColor:C.teal2,catAxisLabelFontFace:"Calibri",catAxisLabelFontSize:11,
+       valAxisLabelColor:C.slate,valAxisLabelFontFace:"Calibri",valAxisLabelFontSize:10,
+       valAxisMinVal:0,valAxisMaxVal:100,valAxisMajorUnit:10,valAxisLabelFormatCode:'0"%"',
+       valGridLine:{color:"E4ECEA",size:1},catGridLine:{style:"none"}});
+    s.addText(rows.length+" work categories  ·  average "+stageAvg().toFixed(1)+"%  ·  "+
+      scopeVillas()+" villas across "+scopeTH()+" townhouses.  "+S.stageNote,
+      {isTextBox:true,x:0.6,y:6.32,w:12.13,h:0.32,fontFace:"Calibri",fontSize:12,color:C.teal2,margin:0});
+    ftr(s);
+  };
+  PPT.ipt=function(s,pgm,n){
+  var it=iptTotals();
+  var head6=["Activity","TH","Villas","Planned %","Actual %","Value (AED)","Weightage %","Remarks"].map(function(h){
+    return {text:h,options:{fill:{color:C.teal},color:C.white,bold:true,fontSize:10,fontFace:"Calibri",valign:"middle"}};});
+  var q6=iptSplit(), rows6=[];
+  function body6(list,off){
+    list.forEach(function(r,ri){
+      rows6.push([r.activity,r.th,String(r.villas),num(r.plan)+"%",num(r.pct)+"%",money(r.value),
+                  (weightOf(r).toFixed(2)+"%"+(r.extra?" *":"")),r.remarks].map(function(c,ci){
+        return {text:c,options:{fill:{color:(ri+off)%2===0?C.white:C.sand},
+          color:ci===0?C.teal:(ci===4?C.terra:(ci===6?(r.extra?C.gold:C.chart):C.teal2)),
+          bold:ci===0||ci===4||ci===6,fontSize:9.5,fontFace:"Calibri",
+          align:(ci>=2&&ci<=6)?"center":"left",valign:"middle"}};}));
+    });
+  }
+  body6(q6.main,0);
+  if(q6.extra.length){
+    rows6.push([{text:"EXTRA IPTs — activities outside the planned IPT",
+      options:{colspan:8,fill:{color:C.sandd},color:C.teal,bold:true,fontSize:9.5,fontFace:"Calibri",valign:"middle"}}]);
+    body6(q6.extra,1);
+  }
+  s.addTable([head6].concat(rows6),{x:0.6,y:1.62,w:12.13,colW:[2.9,1.1,0.7,0.95,0.95,1.25,1.05,3.23],
+    rowH:Math.min(0.295,4.55/(S.ipt.length+(q6.extra.length?2:1))),border:{type:"solid",color:C.sandd,pt:1},margin:[3,8,3,8]});
+  s.addText(earnedLine(),{isTextBox:true,x:0.6,y:6.30,w:12.13,h:0.30,fontFace:"Calibri",fontSize:12,bold:true,color:C.terra,margin:0});
+  ftr(s);
+
+  };
+  PPT.iptchart=function(s,pgm,n){
+    var g=iptChartGeom();
+    g.grid.forEach(function(l){
+      s.addShape(p.ShapeType.rect,{x:l.x,y:l.y,w:l.w,h:0.012,
+        fill:{color:l.first?"C6D4D2":"E4ECEA"},line:{color:l.first?"C6D4D2":"E4ECEA",width:0}});
+    });
+    g.bars.forEach(function(b){
+      s.addShape(p.ShapeType.rect,{x:b.x,y:b.y,w:b.w,h:b.h,fill:{color:b.fill},line:{color:b.fill,width:0}});
+    });
+    g.legend.forEach(function(l){
+      s.addShape(p.ShapeType.rect,{x:l.x,y:l.y,w:l.w,h:l.h,fill:{color:l.fill},line:{color:l.fill,width:0}});
+    });
+    g.texts.forEach(function(t){
+      s.addText(t.text,{isTextBox:true,x:t.x,y:t.y,w:t.w,h:t.h,fontFace:"Calibri",fontSize:t.size,
+        bold:!!t.bold,color:t.color,align:t.align,margin:0,valign:"middle"});
+    });
+    s.addText(earnedLine(),{isTextBox:true,x:0.6,y:6.30,w:12.13,h:0.30,fontFace:"Calibri",fontSize:12,bold:true,color:C.terra,margin:0});
+    ftr(s);
+  };
+  PPT.res=function(s,pgm,n){
+    var rows=S.costs||[];
+    s.addChart(p.ChartType.bar,[
+      {name:"Cost planned",labels:rows.map(function(c){return c.party;}),values:rows.map(function(c){return num(c.planned);})},
+      {name:"Actual cost", labels:rows.map(function(c){return c.party;}),values:rows.map(function(c){return num(c.actual);})}
+    ],{x:0.6,y:1.55,w:8.35,h:4.6,barDir:"col",barGrouping:"clustered",barGapWidthPct:70,
+       chartColors:[C.chart,C.terra],showTitle:false,
+       showValue:true,dataLabelPosition:"outEnd",dataLabelColor:C.teal2,
+       dataLabelFontFace:"Calibri",dataLabelFontSize:10.5,dataLabelFormatCode:"#,##0",
+       showLegend:true,legendPos:"b",legendFontFace:"Calibri",legendFontSize:11,legendColor:C.slate,
+       catAxisLabelColor:C.teal,catAxisLabelFontFace:"Calibri",catAxisLabelFontSize:12,catAxisLabelFontBold:true,
+       valAxisLabelColor:C.slate,valAxisLabelFontFace:"Calibri",valAxisLabelFontSize:10.5,
+       valAxisLabelFormatCode:'#,##0,"K"',valAxisMinVal:0,
+       valGridLine:{color:"DDE7E5",size:1},catGridLine:{style:"none"}});
+    var tp=costTot("planned"), ta=costTot("actual");
+    [["Total cost planned",cur()+" "+money(tp),C.chart],
+     ["Total actual cost",cur()+" "+money(ta),C.terra],
+     ["Spent against plan",(tp?(ta/tp*100).toFixed(1):"0.0")+"%",C.teal]].forEach(function(r,i){
+      var y=1.55+i*1.55;
+      card(s,8.85,y,3.88,1.4,C.white);
+      s.addText(r[0],{isTextBox:true,x:9.1,y:y+0.2,w:3.4,h:0.3,fontFace:"Calibri",fontSize:12,bold:true,color:C.slate,margin:0});
+      s.addText(r[1],{isTextBox:true,x:9.1,y:y+0.55,w:3.4,h:0.7,fontFace:"Cambria",fontSize:26,bold:true,color:r[2],margin:0,valign:"middle"});
+    });
+    s.addText(S.costNote||"",{isTextBox:true,x:0.6,y:6.32,w:12.13,h:0.32,fontFace:"Calibri",fontSize:12,color:C.teal2,margin:0});
+    ftr(s);
+  };
+  PPT.risk=function(s,pgm,n){
+  S.concerns.slice(0,6).forEach(function(c,i){
+    var y=1.52+i*1.0; card(s,0.6,y,12.13,0.88,C.white);
+    s.addShape(p.ShapeType.roundRect,{x:0.82,y:y+0.28,w:1.0,h:0.32,rectRadius:0.14,fill:{color:sevHex(c.sev)},line:{color:sevHex(c.sev),width:1}});
+    s.addText(c.sev,{isTextBox:true,x:0.82,y:y+0.28,w:1.0,h:0.32,fontFace:"Calibri",fontSize:9.5,bold:true,color:C.white,align:"center",valign:"middle",margin:0,charSpacing:0.8});
+    s.addText(c.title,{isTextBox:true,x:2.0,y:y+0.11,w:7.4,h:0.3,fontFace:"Calibri",fontSize:13,bold:true,color:C.teal,margin:0});
+    s.addText(c.detail,{isTextBox:true,x:2.0,y:y+0.41,w:8.5,h:0.42,fontFace:"Calibri",fontSize:10.5,color:C.slate,margin:0,valign:"top"});
+    s.addText("Owner: "+c.owner,{isTextBox:true,x:10.7,y:y+0.28,w:1.85,h:0.32,fontFace:"Calibri",fontSize:10.5,color:C.teal2,align:"right",valign:"middle",margin:0});
+  });
+  ftr(s);
+
+  };
+  PPT.proc=function(s,pgm,n){
+  var head9=["Material / package","Qty","Status","ETA on site","Impact if delayed"].map(function(h){
+    return {text:h,options:{fill:{color:C.teal},color:C.white,bold:true,fontSize:12,fontFace:"Calibri",valign:"middle"}};});
+  var rows9=S.procurement.map(function(r,ri){
+    return [r.item,r.qty,r.status,r.eta,r.impact].map(function(c,ci){
+      return {text:c,options:{fill:{color:ri%2===0?C.white:C.sand},
+        color:ci===2?statusHex(r.status):(ci===0?C.teal:C.teal2),bold:ci===0||ci===2,
+        fontSize:11.5,fontFace:"Calibri",align:(ci===1||ci===3)?"center":"left",valign:"middle"}};});});
+  s.addTable([head9].concat(rows9),{x:0.6,y:1.62,w:12.13,colW:[3.5,1.35,2.05,2.13,3.1],
+    rowH:Math.min(0.52,4.2/(S.procurement.length+1)),border:{type:"solid",color:C.sandd,pt:1},margin:[6,10,6,10]});
+  s.addText(S.procNote,{isTextBox:true,x:0.6,y:6.4,w:12.13,h:0.42,fontFace:"Calibri",fontSize:12.5,color:C.teal2,margin:0});
+  ftr(s);
+
+  };
+  PPT.look=function(s,pgm,n){
+  S.lookahead.slice(0,6).forEach(function(l,i){
+    var col=i%2,row=Math.floor(i/2),x=0.6+col*6.25,y=1.66+row*1.55;
+    card(s,x,y,5.88,1.2,C.white);
+    s.addShape(p.ShapeType.ellipse,{x:x+0.24,y:y+0.24,w:0.42,h:0.42,fill:{color:C.terra}});
+    s.addText(String(i+1),{isTextBox:true,x:x+0.24,y:y+0.24,w:0.42,h:0.42,fontFace:"Calibri",fontSize:13,bold:true,color:C.white,align:"center",valign:"middle",margin:0});
+    s.addText(l.title,{isTextBox:true,x:x+0.82,y:y+0.18,w:3.5,h:0.32,fontFace:"Calibri",fontSize:13,bold:true,color:C.teal,margin:0});
+    s.addText(l.th,{isTextBox:true,x:x+4.3,y:y+0.18,w:1.32,h:0.32,fontFace:"Calibri",fontSize:11.5,bold:true,color:C.terra,align:"right",margin:0});
+    s.addText(l.detail,{isTextBox:true,x:x+0.82,y:y+0.54,w:4.8,h:0.62,fontFace:"Calibri",fontSize:11,color:C.slate,margin:0,valign:"top"});
+  });
+  s.addText(S.lookNote,{isTextBox:true,x:0.6,y:6.24,w:12.13,h:0.34,fontFace:"Calibri",fontSize:12.5,bold:true,color:C.teal2,margin:0});
+  ftr(s);
+
+  };
+  PPT.close=function(s,pgm,n){
+    s.background={color:C.paper};
+  if(art)s.addImage({data:art,x:0,y:0,w:13.333,h:7.5,transparency:100-motifAlpha(0.72)*100});
+  var lb=logoBox(1.25);
+    if(S.meta.logo)s.addImage({data:S.meta.logo,x:0.9,y:0.5,w:lb.w,h:lb.h});
+  s.addText(tok(pgm.eyebrow).toUpperCase(),{isTextBox:true,x:0.9,y:1.9,w:8,h:0.3,fontFace:"Calibri",fontSize:11.5,bold:true,color:C.terra,charSpacing:2,margin:0});
+  s.addText(S.closing.headline,{isTextBox:true,x:0.9,y:2.3,w:11.5,h:1.1,fontFace:"Cambria",fontSize:34,bold:true,color:C.teal,margin:0});
+  S.closing.bullets.slice(0,4).forEach(function(b,i){
+    var y=3.75+i*0.72;
+    s.addShape(p.ShapeType.ellipse,{x:0.9,y:y+0.09,w:0.22,h:0.22,fill:{color:C.terra}});
+    s.addText(b.text,{isTextBox:true,x:1.32,y:y,w:10.6,h:0.6,fontFace:"Calibri",fontSize:15,color:C.teal2,margin:0,valign:"top"});
+  });
+  s.addText("Prepared by "+S.meta.issuedBy+"  ·  "+S.meta.companyName,{isTextBox:true,x:0.9,y:6.2,w:11.5,h:0.3,fontFace:"Calibri",fontSize:11,color:C.muted,margin:0});
+  s.addText("Next report: "+nextReportLabel(),{isTextBox:true,x:0.9,y:6.52,w:11.5,h:0.3,fontFace:"Calibri",fontSize:11,bold:true,color:C.terra,margin:0});
+
+  };
+  PPT.text=function(s,pgm,n){
+    var body=String(pgm.body||"").split(/\n{2,}/).filter(function(x){return x.trim();});
+    var runs=[];
+    body.forEach(function(par,i){
+      runs.push({text:par,options:{breakLine:true,paraSpaceAfter:i<body.length-1?10:0}});
+    });
+    if(runs.length)s.addText(runs,{isTextBox:true,x:0.6,y:1.6,w:9.6,h:4.6,fontFace:"Calibri",
+      fontSize:14,color:C.teal2,lineSpacing:22,margin:0,valign:"top"});
+    ftr(s);
+  };
+
+  var pageNo=0;
+  activePages().forEach(function(pgm){
+    var f=PPT[pgm.type]||PPT.text;
+    var sl=slide();
+    if(numbered(pgm.type)){pageNo++;hdr(sl,pgm,pageNo);}
+    f(sl,pgm,pageNo);
+  });
+  return p;
+}
+function fileStem(){
+  return (S.meta.projectName||"Report").replace(/[^A-Za-z0-9-]+/g,"-")+"_MEP-Progress_W"+(S.meta.weekNo||"");
+}
+
+/* =====================================================================
+   7. PDF EXPORT
+   ===================================================================== */
+async function exportPdf(){
+  if(!activePages().length){toast("No pages are switched on.");return;}
+  toast("Building PDF…");
+  try{ await ensureLib("html2canvas"); await ensureLib("jspdf"); chip(); }
+  catch(e){ chip(); toast("Could not load the PDF libraries — check your internet connection and reload."); return; }
+  var host=document.createElement("div");
+  host.style.cssText="position:fixed;left:-99999px;top:0";
+  var n=0;
+  host.innerHTML=activePages().map(function(pgm){
+    var f=PREVIEW[pgm.type]||pageText;
+    if(numbered(pgm.type))n++;
+    return f(pgm,numbered(pgm.type)?n:0);
+  }).join("");
+  document.body.appendChild(host);
+  try{
+    var jsPDF=window.jspdf.jsPDF;
+    var pdf=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
+    var nodes=host.querySelectorAll(".page");
+    for(var i=0;i<nodes.length;i++){
+      var cv=await html2canvas(nodes[i],{scale:2,backgroundColor:"#ffffff",logging:false,useCORS:true});
+      if(i)pdf.addPage("a4","landscape");
+      pdf.addImage(cv.toDataURL("image/jpeg",0.94),"JPEG",0,0,297,210);
+    }
+    pdf.save(fileStem()+".pdf");
+    toast("PDF downloaded");
+  }catch(e){ toast("PDF failed: "+e.message); }
+  finally{ host.remove(); }
+}
+
+/* =====================================================================
+   8. EXCEL IN / OUT
+   ===================================================================== */
+var SHEETS=[
+  ["Project",   function(){return Object.keys(S.meta).filter(function(k){return k!=="logo";})
+                  .map(function(k){return{Field:k,Value:S.meta[k]};});},
+                function(rows){rows.forEach(function(r){if(r.Field&&r.Field!=="logo")S.meta[r.Field]=r.Value;});}],
+  ["Townhouses",function(){var out=[];S.ths.forEach(function(t){
+                  (t.blocks||[]).forEach(function(b){out.push({TH:t.th,Block:b.block,Villas:num(b.villas)});});
+                  if(!t.blocks||!t.blocks.length)out.push({TH:t.th,Block:"",Villas:0});});return out;},
+                function(rows){var out=[];rows.forEach(function(r){
+                  var code=r.TH||r.th||"";if(!code)return;
+                  var t=out.filter(function(x){return x.th===code;})[0];
+                  if(!t){t={th:code,blocks:[]};out.push(t);}
+                  t.blocks.push({block:r.Block||r.block||"",villas:num(r.Villas!==undefined?r.Villas:r.villas)});});
+                  if(out.length)S.ths=out;}],
+  ["KPI",       function(){return Object.keys(S.kpi).map(function(k){return{Field:k,Value:S.kpi[k]};});},
+                function(rows){rows.forEach(function(r){if(r.Field)S.kpi[r.Field]=num(r.Value);});}],
+  ["Curve",     function(){return S.curve;},           function(r){S.curve=r.map(function(x){return{week:x.week,plan:num(x.plan),actual:num(x.actual)};});}],
+  ["Trades",    function(){return S.trades;},          function(r){S.trades=r.map(function(x){return{name:x.name,pct:num(x.pct),move:x.move,note:x.note};});}],
+  ["Categories",function(){return S.stages;},          function(r){S.stages=r.map(function(x){return{name:x.name,pct:num(x.pct),tone:x.tone||"slate",note:x.note||""};});}],
+  ["IPT",       function(){return S.ipt;},             function(r){S.ipt=r.map(function(x){var ex=(x.extra===true||String(x.extra).toLowerCase()==="true"||String(x.extra).toLowerCase()==="extra");
+                  return{activity:x.activity,th:x.th,villas:num(x.villas),plan:ex?0:num(x.plan),pct:num(x.pct),value:num(x.value),extra:ex,remarks:x.remarks};});}],
+  ["Costs",     function(){return S.costs;},           function(r){S.costs=r.map(function(x){return{party:x.party,planned:num(x.planned),actual:num(x.actual)};});}],
+  ["Concerns",  function(){return S.concerns;},        function(r){S.concerns=r;}],
+  ["Procurement",function(){return S.procurement;},    function(r){S.procurement=r;}],
+  ["LookAhead", function(){return S.lookahead;},       function(r){S.lookahead=r;}],
+  ["Closing",   function(){return [{Field:"headline",Value:S.closing.headline}].concat(
+                  S.closing.bullets.map(function(b,i){return{Field:"bullet"+(i+1),Value:b.text};}));},
+                function(rows){var b=[];rows.forEach(function(r){
+                  if(r.Field==="headline")S.closing.headline=r.Value; else if(/^bullet/.test(r.Field||""))b.push({text:r.Value});});
+                  if(b.length)S.closing.bullets=b;}],
+  ["Notes",     function(){return [{Field:"curveNote",Value:S.curveNote},{Field:"stageNote",Value:S.stageNote},
+                  {Field:"procNote",Value:S.procNote},{Field:"lookNote",Value:S.lookNote},
+                  {Field:"costNote",Value:S.costNote},{Field:"iptCost",Value:S.iptCost}];},
+                function(rows){rows.forEach(function(r){
+                  if(r.Field==="curveNote")S.curveNote=r.Value;
+                  else if(r.Field==="stageNote")S.stageNote=r.Value;
+                  else if(r.Field==="procNote")S.procNote=r.Value;
+                  else if(r.Field==="lookNote")S.lookNote=r.Value;
+                  else if(r.Field==="costNote")S.costNote=r.Value;
+                  else if(r.Field==="iptCost")S.iptCost=num(r.Value);
+                  });}],
+  ["PageHeadings",function(){return S.pages;},         function(r){if(r.length)S.pages=r;}],
+  ["Theme",     function(){return Object.keys(S.theme).map(function(k){return{Field:k,Value:S.theme[k]};});},
+                function(rows){rows.forEach(function(r){if(r.Field)S.theme[r.Field]=r.Value;});applyTheme();}]
+];
+
+function exportXlsx(){
+  if(!window.XLSX){ ensureLib("XLSX").then(function(){chip();exportXlsx();},
+    function(){chip();toast("Could not load the Excel library — check your internet connection and reload.");}); return; }
+  var wb=XLSX.utils.book_new();
+  SHEETS.forEach(function(sh){
+    var data=sh[1]();
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),sh[0]);
+  });
+  XLSX.writeFile(wb,fileStem()+"_data.xlsx");
+  toast("Excel workbook downloaded");
+}
+function importXlsx(file){
+  if(!window.XLSX){ ensureLib("XLSX").then(function(){chip();importXlsx(file);},
+    function(){chip();toast("Could not load the Excel library — check your internet connection and reload.");}); return; }
+  var fr=new FileReader();
+  fr.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:"array"});
+      var used=0;
+      SHEETS.forEach(function(sh){
+        var ws=wb.Sheets[sh[0]];
+        if(!ws)return;
+        sh[2](XLSX.utils.sheet_to_json(ws,{defval:""}));
+        used++;
+      });
+      save();buildNav();renderEditor();updateTag();
+      toast("Imported "+used+" sheets");
+    }catch(err){ toast("Import failed: "+err.message); }
+  };
+  fr.readAsArrayBuffer(file);
+}
+
+/* =====================================================================
+   9. WIRING
+   ===================================================================== */
+function download(name,blob){
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href);},4000);
+}
+
+document.querySelectorAll(".tab").forEach(function(t){
+  t.onclick=function(){
+    document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("on");});
+    t.classList.add("on");
+    var edit=t.dataset.tab==="edit";
+    document.getElementById("nav").style.display=edit?"":"none";
+    document.getElementById("work").style.display=edit?"":"none";
+    document.getElementById("pv").style.display=edit?"none":"flex";
+    if(!edit)renderPreview();
+  };
+});
+document.getElementById("zoom").oninput=applyZoom;
+
+document.getElementById("btnPptx").onclick=function(){
+  if(!activePages().length){toast("No pages are switched on.");return;}
+  toast("Building PowerPoint…");
+  ensureLib("PptxGenJS").then(function(){
+    return buildPptx();
+  }).then(function(p){
+    return p.writeFile({fileName:fileStem()+".pptx"});
+  }).then(function(){toast("PowerPoint downloaded");chip();})
+    .catch(function(e){
+      chip();
+      toast(window.PptxGenJS?("PowerPoint failed: "+e.message)
+        :"Could not load the PowerPoint library — check your internet connection and reload.");
+    });
+};
+document.getElementById("btnPdf").onclick=exportPdf;
+document.getElementById("btnXlsxOut").onclick=exportXlsx;
+document.getElementById("btnXlsxIn").onclick=function(){document.getElementById("fileXlsx").click();};
+document.getElementById("fileXlsx").onchange=function(e){if(e.target.files[0])importXlsx(e.target.files[0]);e.target.value="";};
+
+document.getElementById("btnSaveJson").onclick=function(){
+  download(fileStem()+".json",new Blob([JSON.stringify(S,null,2)],{type:"application/json"}));
+  toast("Project saved");
+};
+document.getElementById("btnLoadJson").onclick=function(){document.getElementById("fileJson").click();};
+document.getElementById("fileJson").onchange=function(e){
+  var f=e.target.files[0];if(!f)return;
+  var fr=new FileReader();
+  fr.onload=function(ev){
+    try{ S=JSON.parse(ev.target.result); migrate(); save(); buildNav(); renderEditor(); updateTag();
+         if(S.meta.logo&&!num(S.meta.logoAR))measureLogo(); toast("Project opened"); }
+    catch(err){ toast("Could not read that file"); }
+  };
+  fr.readAsText(f); e.target.value="";
+};
+document.getElementById("fileLogo").onchange=function(e){
+  var f=e.target.files[0];if(!f)return;
+  var fr=new FileReader();
+  fr.onload=function(ev){S.meta.logo=ev.target.result;S.meta.logoAR=0;save();
+    measureLogo(function(){renderEditor();});};
+  fr.readAsDataURL(f); e.target.value="";
+};
+
+preloadLibs();
+load();
+migrate();
+applyTheme();
+if(S.meta.logo&&!num(S.meta.logoAR))measureLogo();
+save();
+updateTag();
+buildNav();
+renderEditor();
+</script>
+</body>
+</html>
