@@ -1471,7 +1471,7 @@ function TBL(o){
 
 function head(pgm,n){
   var h=TX(tok(pgm.eyebrow).toUpperCase(),{x:0.6,y:0.38,w:9,h:0.28,f:"B",size:11,bold:true,color:C.terra,spacing:1.6});
-  h+=TX(tok(pgm.title),{x:0.6,y:0.66,w:10.6,h:0.62,f:"H",size:30,bold:true,color:C.teal});
+  h+=TX(tok(pgm.title),{x:0.6,y:0.66,w:(pgm.type==="iptchart"?8.6:10.6),h:0.62,f:"H",size:30,bold:true,color:C.teal});
   if(n){
     h+='<div style="'+BX(12.28,0.44,0.5,0.5)+"background:#"+C.sand+";border:1px solid #"+C.sandd+
        ';border-radius:50%;"></div>';
@@ -1808,6 +1808,13 @@ function pageText(pgm,n){
 }
 
 /* IPT chart geometry — one source of truth, rendered by both the preview and PowerPoint */
+function totalBox(){
+  var t=earnedTotals();
+  return {x:9.4,y:0.40,w:2.6,h:1.05,
+          label:"TOTAL PROGRESS",
+          big:iptCost()?(t.pct.toFixed(1)+"%"):"—",
+          sub:iptCost()?(cur()+" "+money(Math.round(t.value))+" earned"):"set the total IPT value"};
+}
 function iptChartGeom(){
   var rows=iptOrdered(), cost=iptCost();
   var X=0.6, Y=1.55, W=12.13, H=4.6;
@@ -1860,14 +1867,17 @@ function iptChartGeom(){
 }
 
 function pageIptChart(pgm,n){
-  var h=head(pgm,n), g=iptChartGeom();
+  var h=head(pgm,n), g=iptChartGeom(), tb=totalBox();
+  h+=CARD(tb.x,tb.y,tb.w,tb.h);
+  h+=TX(tb.label,{x:tb.x+0.15,y:tb.y+0.12,w:tb.w-0.3,h:0.24,f:"B",size:9.5,bold:true,color:C.terra,spacing:1.4,align:"center"});
+  h+=TX(tb.big,{x:tb.x+0.15,y:tb.y+0.32,w:tb.w-0.3,h:0.48,f:"H",size:26,bold:true,color:C.teal,align:"center",valign:"middle"});
+  h+=TX(tb.sub,{x:tb.x+0.12,y:tb.y+0.78,w:tb.w-0.24,h:0.22,f:"B",size:8.5,color:C.slate,align:"center"});
   g.grid.forEach(function(l){ h+=RECT(l.x,l.y,l.w,0.012,l.first?"C6D4D2":"E4ECEA"); });
   g.bars.forEach(function(b){ h+=RECT(b.x,b.y,b.w,b.h,b.fill,null,0.02); });
   g.legend.forEach(function(l){ h+=RECT(l.x,l.y,l.w,l.h,l.fill,null,0.02); });
   g.texts.forEach(function(t){
     h+=TX(t.text,{x:t.x,y:t.y,w:t.w,h:t.h,f:"B",size:t.size,bold:t.bold,color:t.color,align:t.align});
   });
-  h+=TX(earnedLine(),{x:0.6,y:6.30,w:12.13,h:0.30,f:"B",size:12,bold:true,color:C.terra});
   return shell(h+foot());
 }
 
@@ -1932,7 +1942,7 @@ async function buildPptx(){
   }
   function hdr(s,pgm,n){
     s.addText(tok(pgm.eyebrow).toUpperCase(),{isTextBox:true,x:0.6,y:0.38,w:9,h:0.28,fontFace:"Calibri",fontSize:11,bold:true,color:C.terra,charSpacing:1.6,margin:0});
-    s.addText(tok(pgm.title),{isTextBox:true,x:0.6,y:0.66,w:10.6,h:0.62,fontFace:"Cambria",fontSize:30,bold:true,color:C.teal,margin:0});
+    s.addText(tok(pgm.title),{isTextBox:true,x:0.6,y:0.66,w:(pgm.type==="iptchart"?8.6:10.6),h:0.62,fontFace:"Cambria",fontSize:30,bold:true,color:C.teal,margin:0});
     if(!n)return;
     s.addShape(p.ShapeType.ellipse,{x:12.28,y:0.44,w:0.5,h:0.5,fill:{color:C.sand},line:{color:C.sandd,width:1}});
     s.addText(String(n).padStart(2,"0"),{isTextBox:true,x:12.28,y:0.44,w:0.5,h:0.5,fontFace:"Calibri",fontSize:12,bold:true,color:C.terra,align:"center",valign:"middle",margin:0});
@@ -2080,7 +2090,11 @@ async function buildPptx(){
 
   };
   PPT.iptchart=function(s,pgm,n){
-    var g=iptChartGeom();
+    var g=iptChartGeom(), tb=totalBox();
+    card(s,tb.x,tb.y,tb.w,tb.h);
+    s.addText(tb.label,{isTextBox:true,x:tb.x+0.15,y:tb.y+0.12,w:tb.w-0.3,h:0.24,fontFace:"Calibri",fontSize:9.5,bold:true,color:C.terra,charSpacing:1.4,align:"center",margin:0});
+    s.addText(tb.big,{isTextBox:true,x:tb.x+0.15,y:tb.y+0.32,w:tb.w-0.3,h:0.48,fontFace:"Cambria",fontSize:26,bold:true,color:C.teal,align:"center",valign:"middle",margin:0});
+    s.addText(tb.sub,{isTextBox:true,x:tb.x+0.12,y:tb.y+0.78,w:tb.w-0.24,h:0.22,fontFace:"Calibri",fontSize:8.5,color:C.slate,align:"center",margin:0});
     g.grid.forEach(function(l){
       s.addShape(p.ShapeType.rect,{x:l.x,y:l.y,w:l.w,h:0.012,
         fill:{color:l.first?"C6D4D2":"E4ECEA"},line:{color:l.first?"C6D4D2":"E4ECEA",width:0}});
@@ -2095,7 +2109,6 @@ async function buildPptx(){
       s.addText(t.text,{isTextBox:true,x:t.x,y:t.y,w:t.w,h:t.h,fontFace:"Calibri",fontSize:t.size,
         bold:!!t.bold,color:t.color,align:t.align,margin:0,valign:"middle"});
     });
-    s.addText(earnedLine(),{isTextBox:true,x:0.6,y:6.30,w:12.13,h:0.30,fontFace:"Calibri",fontSize:12,bold:true,color:C.terra,margin:0});
     ftr(s);
   };
   PPT.res=function(s,pgm,n){
