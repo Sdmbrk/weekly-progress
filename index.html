@@ -641,33 +641,30 @@ function migrate(){
   (S.costs||[]).forEach(function(c){if(c.comment===undefined)c.comment="";});
   if(S.showCostWhy===undefined)S.showCostWhy=true;
   if(S.showMatWhy===undefined)S.showMatWhy=true;
-  if(S.pages&&S.pages.length&&num(S.schema)<8){
+  var sch=num(S.schema);                       // fixed at entry: each step below is judged against it
+  if(S.pages&&S.pages.length&&sch<8){
     S.pages.forEach(function(pg){
       if((pg.type||pg.id)==="material"&&
          (pg.title==="Material budget against actual spend"||pg.title==="Material cost"))
         pg.title="Material Budget {mon}-{year} IPT — Week {week}";
     });
-    S.schema=8;
   }
-  if(S.pages&&S.pages.length&&num(S.schema)<7){
+  if(S.pages&&S.pages.length&&sch<7){
     S.pages=S.pages.filter(function(pg){return (pg.type||pg.id)!=="curve";});
     delete S.curve; delete S.curveNote;
-    S.schema=7;
   }
-  if(S.closing&&S.closing.bullets&&num(S.schema)<6){
+  if(S.closing&&S.closing.bullets&&sch<6){
     S.closing.bullets.forEach(function(b){
       var t=String(b.text||"");
       if(/\{[a-z]+\}/i.test(t))return;                       // already using tokens
       var tokenFor=/ipt/i.test(t)?"{iptprogress}":(/manpower/i.test(t)?"{manpower}":(/material/i.test(t)?"{material}":""));
       if(tokenFor)b.text=t.replace(/^\s*[\d.]+\s*%/,tokenFor);
     });
-    S.schema=6;
   }
-  if(S.pages&&S.pages.length&&num(S.schema)<5){
+  if(S.pages&&S.pages.length&&sch<5){
     S.pages=S.pages.filter(function(pg){return (pg.type||pg.id)!=="trades";});
-    S.schema=5;
   }
-  if(S.pages&&S.pages.length&&num(S.schema)<4){
+  if(S.pages&&S.pages.length&&sch<4){
     if(!S.pages.some(function(pg){return (pg.type||pg.id)==="material";})){
       var ri=-1;
       S.pages.forEach(function(pg,i){if((pg.type||pg.id)==="res")ri=i;});
@@ -675,7 +672,6 @@ function migrate(){
               eyebrow:"Material cost",title:"Material Budget {mon}-{year} IPT — Week {week}"};
       if(ri>=0)S.pages.splice(ri+1,0,mp); else S.pages.push(mp);
     }
-    S.schema=4;
   }
   if(S.kpi&&!S.kpi.source)S.kpi.source="trades";
   (S.ipt||[]).forEach(function(r){
@@ -683,7 +679,7 @@ function migrate(){
     if(r.extra===undefined)r.extra=false;
     if(r.extra)r.plan=0;
   });
-  if(S.pages&&S.pages.length&&num(S.schema)<3){
+  if(S.pages&&S.pages.length&&sch<3){
     var hasChart=S.pages.some(function(pg){return (pg.type||pg.id)==="iptchart";});
     if(!hasChart){
       var ii=-1;
@@ -692,12 +688,11 @@ function migrate(){
               eyebrow:"IPT progress",title:"IPT - Planned vs Actual"};
       if(ii>=0)S.pages.splice(ii+1,0,np); else S.pages.push(np);
     }
-    S.schema=3;
   }
   if(!S.theme)S.theme=defaultTheme();
   else{var d=defaultTheme();for(var tk in d)if(S.theme[tk]===undefined)S.theme[tk]=d[tk];}
   applyTheme();
-  if(S.pages&&S.pages.length&&num(S.schema)<2){          // categories page moves up behind the summary
+  if(S.pages&&S.pages.length&&sch<2){          // categories page moves up behind the summary
     var si=-1,ei=-1;
     S.pages.forEach(function(pg,i){
       if(pg.type==="stages"||pg.id==="stages")si=i;
@@ -707,8 +702,23 @@ function migrate(){
       var moved=S.pages.splice(si,1)[0];
       S.pages.splice(si<ei?ei:ei+1,0,moved);
     }
-    S.schema=2;
   }
+  if(S.pages&&S.pages.length&&sch<9){          // repairs projects stamped by the old version gate
+    function ensurePage(type,after,page){
+      if(S.pages.some(function(pg){return (pg.type||pg.id)===type;}))return;
+      var at=-1;
+      S.pages.forEach(function(pg,i){if((pg.type||pg.id)===after)at=i;});
+      if(at>=0)S.pages.splice(at+1,0,page); else S.pages.push(page);
+    }
+    ensurePage("iptchart","ipt",{key:newKey(),type:"iptchart",name:"IPT planned vs actual",on:true,
+      eyebrow:"IPT progress",title:"IPT - Planned vs Actual"});
+    ensurePage("material","res",{key:newKey(),type:"material",name:"Material cost",on:true,
+      eyebrow:"Material cost",title:"Material Budget {mon}-{year} IPT — Week {week}"});
+    S.pages=S.pages.filter(function(pg){                  // drop page types that no longer exist
+      return PAGE_TYPES.some(function(t){return t.type===(pg.type||pg.id);});
+    });
+  }
+  S.schema=9;
   if(!S.costs){
     S.costs=[{party:"MGC Team",planned:0,actual:0},
              {party:"Subcontractor",planned:0,actual:0},
