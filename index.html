@@ -641,6 +641,14 @@ function migrate(){
   (S.costs||[]).forEach(function(c){if(c.comment===undefined)c.comment="";});
   if(S.showCostWhy===undefined)S.showCostWhy=true;
   if(S.showMatWhy===undefined)S.showMatWhy=true;
+  if(S.pages&&S.pages.length&&num(S.schema)<8){
+    S.pages.forEach(function(pg){
+      if((pg.type||pg.id)==="material"&&
+         (pg.title==="Material budget against actual spend"||pg.title==="Material cost"))
+        pg.title="Material Budget {mon}-{year} IPT — Week {week}";
+    });
+    S.schema=8;
+  }
   if(S.pages&&S.pages.length&&num(S.schema)<7){
     S.pages=S.pages.filter(function(pg){return (pg.type||pg.id)!=="curve";});
     delete S.curve; delete S.curveNote;
