@@ -96,7 +96,12 @@ input[type=text],input[type=number],input[type=date],select,textarea{
 textarea{min-height:78px;resize:vertical;line-height:1.5}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--chart);outline-offset:-1px;border-color:var(--chart)}
 
-table.ed{width:100%;border-collapse:collapse;font-size:13px}
+.edwrap{overflow-x:auto}
+table.ed{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;min-width:100%}
+table.ed th{position:relative}
+table.ed td input,table.ed td select{width:100%;min-width:0}
+.grip{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:2}
+.grip:hover{background:var(--chart);opacity:.5}
 table.ed th{
   text-align:left;background:#F2F7F7;color:var(--teal);font-weight:600;
   padding:7px 8px;border:1px solid var(--line);white-space:nowrap;
@@ -128,6 +133,9 @@ table.ed td.act{width:34px;text-align:center;background:#FAFCFC}
 .motifprev{margin-top:14px;height:150px;border:1px solid var(--line);border-radius:7px;overflow:hidden;
   display:flex;align-items:center;justify-content:center}
 .motifprev img{width:100%;height:100%;object-fit:cover}
+.throw{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.thtot{margin-left:auto;font-size:12.5px;font-weight:600;color:var(--terra)}
+.actname{width:230px;font-weight:600}
 .pghdr{display:flex;gap:10px;align-items:center;margin-bottom:12px}
 .pgtag{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
   border-radius:50%;background:var(--sand);border:1px solid var(--sandd);color:var(--terra);font-size:12px;font-weight:700}
@@ -520,6 +528,7 @@ function defaults(){return{
   showCostWhy:true,
   showMatWhy:true,
   costNote:"Cost planned against actual spend to date, by supply party.",
+  manDays:126,
   iptCost:4500000,
   materials:[
     {item:"Cables & wiring",budget:420000,spent:463500,comment:"Rate rise on copper plus 1,200 m extra for the revised riser route"},
@@ -633,6 +642,7 @@ function migrate(){
   if(S.kpi){["rows","handed","workforce","crews"].forEach(function(k){delete S.kpi[k];});}
   if(S.exec)delete S.exec;
   if(S.iptCost===undefined)S.iptCost=0;
+  if(S.manDays===undefined)S.manDays=0;
   if(!S.materials){
     S.materials=[{item:"",budget:0,spent:0,comment:""}];
     if(S.materialNote===undefined)S.materialNote="Budgeted material cost against committed spend to date.";
@@ -734,6 +744,7 @@ function migrate(){
     });
     if(!S.meta.issueDate)S.meta.issueDate=todayISO();
     if(S.meta.villas===undefined)S.meta.villas=0;
+    delete S.meta.startDate;
     if(S.meta.townhouses===undefined)S.meta.townhouses=0;
     if(S.meta.nextReport!==undefined)delete S.meta.nextReport;
     delete S.meta.revision;
@@ -871,13 +882,29 @@ function mepActual(){
 function hasBaseline(){return String(S.kpi.planned).trim()!==""&&num(S.kpi.planned)>0;}
 function variance(){return (mepActual()-num(S.kpi.planned)).toFixed(1);}
 function iptCost(){return num(S.iptCost);}
-function weightOf(r){var c=iptCost();return c?(num(r.value)/c*100):0;}
+function subs(r){return (r&&r.subs&&r.subs.length)?r.subs:null;}
+function rowValue(r){var q=subs(r);return q?q.reduce(function(a,x){return a+num(x.value);},0):num(r.value);}
+function rowVillas(r){var q=subs(r);return q?q.reduce(function(a,x){return a+num(x.villas);},0):num(r.villas);}
+function rowPct(r){
+  var q=subs(r); if(!q)return num(r.pct);
+  var v=rowValue(r);
+  if(v)return q.reduce(function(a,x){return a+num(x.value)*num(x.pct);},0)/v;    // weighted by value
+  var vl=rowVillas(r);
+  if(vl)return q.reduce(function(a,x){return a+num(x.villas)*num(x.pct);},0)/vl; // else by villas
+  return q.reduce(function(a,x){return a+num(x.pct);},0)/q.length;
+}
+function rowTH(r){
+  var q=subs(r); if(!q)return r.th||"";
+  var list=q.map(function(x){return x.th;}).filter(Boolean);
+  return list.length>2?(list.length+" TH"):list.join(", ");
+}
+function weightOf(r){var c=iptCost();return c?(rowValue(r)/c*100):0;}
 function weightTotals(){
   var w=0,pl=0,ac=0,xw=0,xa=0;
   (S.ipt||[]).forEach(function(r){
     var x=weightOf(r);
-    if(r.extra){ xw+=x; xa+=x*num(r.pct)/100; }        // extra work sits outside the IPT value
-    else { w+=x; pl+=x*num(r.plan)/100; ac+=x*num(r.pct)/100; }
+    if(r.extra){ xw+=x; xa+=x*rowPct(r)/100; }        // extra work sits outside the IPT value
+    else { w+=x; pl+=x*num(r.plan)/100; ac+=x*rowPct(r)/100; }
   });
   return {weight:w,planned:pl,actual:ac,extraWeight:xw,extraActual:xa};
 }
@@ -887,10 +914,14 @@ function iptSplit(){
   return {main:m,extra:e};
 }
 var IPT_ROWS_PER_PAGE=13;
-function iptFlat(){                                  // data rows plus the extras banner, in print order
+function iptFlat(){                                  // group headers, their TH rows, plus the extras banner
   var q=iptSplit(), out=[];
-  q.main.forEach(function(r){out.push({r:r});});
-  if(q.extra.length){out.push({sec:true});q.extra.forEach(function(r){out.push({r:r});});}
+  function add(r){
+    out.push({r:r});
+    (subs(r)||[]).forEach(function(x){out.push({r:r,sub:x});});
+  }
+  q.main.forEach(add);
+  if(q.extra.length){out.push({sec:true});q.extra.forEach(add);}
   return out;
 }
 function iptChunks(){
@@ -919,7 +950,7 @@ function iptOrdered(){var q=iptSplit();return q.main.concat(q.extra);}
 function earnedTotals(){
   var vm=0,ve=0;
   (S.ipt||[]).forEach(function(r){
-    var v=num(r.value)*Math.max(0,Math.min(100,num(r.pct)))/100;
+    var v=rowValue(r)*Math.max(0,Math.min(100,rowPct(r)))/100;
     if(r.extra)ve+=v; else vm+=v;
   });
   var wt=weightTotals();
@@ -932,8 +963,10 @@ function earnedLine(){
   if(t.extraValue)out+="   +  extra IPTs "+(iptCost()?(t.extraPct.toFixed(2)+"%  ·  "):"")+cur()+" "+money(Math.round(t.extraValue));
   return out;
 }
-function iptTotals(){var v=0,f=0;S.ipt.forEach(function(r){v+=num(r.value);f+=num(r.villas);});return{value:v,fronts:f};}
+function iptTotals(){var v=0,f=0;S.ipt.forEach(function(r){v+=rowValue(r);f+=rowVillas(r);});return{value:v,fronts:f};}
 function costTot(k){return (S.costs||[]).reduce(function(a,c){return a+num(c[k]);},0);}
+function manDays(){return num(S.manDays);}
+function avgPerDay(total){var d=manDays();return d?Math.round(total/d):0;}
 function matTot(k){return (S.materials||[]).reduce(function(a,m){return a+num(m[k]);},0);}
 function matOver(){return (S.materials||[]).filter(function(m){return num(m.spent)>num(m.budget);});}
 function costOver(){return (S.costs||[]).filter(function(c){return num(c.actual)>num(c.planned);});}
@@ -942,14 +975,24 @@ var PREV_PUSH={
   text:function(t,x,y,w,hh,size,bold,color,sp){
     return TX(t,{x:x,y:y,w:w,h:hh,f:"B",size:size,bold:bold,color:color,spacing:sp||0});}
 };
-function whyCard(h,list,keyName,on,push){          // shared "why spend exceeded budget" block
+function statGeom(count){
+  var pitch=count>=5?0.76:0.88, ch=count>=5?0.70:0.80;
+  return {pitch:pitch,h:ch,whyTop:1.55+count*pitch+0.06};
+}
+function whyCard(h,list,keyName,on,push,top){      // shared "why spend exceeded budget" block
   if(!on)return h;
-  h+=push.card(8.05,4.79,4.68,1.36,C.sand);
-  h+=push.text("WHY SPEND EXCEEDED BUDGET",8.3,4.90,4.2,0.24,9.5,true,C.terra,1.2);
-  if(!list.length)h+=push.text("Nothing is over budget.",8.3,5.16,4.2,0.30,11,false,C.slate,0);
-  else list.slice(0,3).forEach(function(m,i){
-    h+=push.text(m[keyName]+" — "+(m.comment||"no reason recorded"),8.3,5.14+i*0.33,4.2,0.32,9.5,false,C.teal2,0);
-  });
+  var y=top||4.79, hh=6.15-y;
+  var maxLines=Math.max(1,Math.floor((hh-0.40)/0.26));
+  h+=push.card(8.05,y,4.68,hh,C.sand);
+  h+=push.text("WHY SPEND EXCEEDED BUDGET",8.3,y+0.10,4.2,0.22,9.5,true,C.terra,1.2);
+  if(!list.length)h+=push.text("Nothing is over budget.",8.3,y+0.34,4.2,0.28,11,false,C.slate,0);
+  else{
+    list.slice(0,maxLines).forEach(function(m,i){
+      h+=push.text(m[keyName]+" — "+(m.comment||"no reason recorded"),8.3,y+0.33+i*0.26,4.2,0.28,9.5,false,C.teal2,0);
+    });
+    if(list.length>maxLines)
+      h+=push.text("+"+(list.length-maxLines)+" more over budget",8.3,y+0.33+maxLines*0.26,4.2,0.28,9,false,C.muted,0);
+  }
   return h;
 }
 function cur(){return S.meta.currency||"AED";}
@@ -1122,9 +1165,22 @@ function buildNav(){
 }
 
 /* generic table editor */
+function colKey(ci,c){return (current||"t")+":"+(c.key||c.label||ci);}
+function colWidth(ci,c){
+  var saved=STORE&&STORE.colw?STORE.colw[colKey(ci,c)]:0;
+  if(num(saved)>0)return num(saved)+"px";
+  return c.w||"";                                  // fall back to the design width
+}
 function tableEditor(arr,cols,onChange){
-  var h='<table class="ed"><thead><tr>';
-  cols.forEach(function(c){h+='<th'+(c.w?' style="width:'+c.w+'"':'')+'>'+esc(c.label)+'</th>';});
+  var h='<div class="edwrap"><table class="ed"><colgroup>';
+  cols.forEach(function(c,ci){
+    var wdt=colWidth(ci,c);
+    h+='<col'+(wdt?' style="width:'+wdt+'"':'')+'>';
+  });
+  h+='<col style="width:34px"></colgroup><thead><tr>';
+  cols.forEach(function(c,ci){
+    h+='<th>'+esc(c.label)+'<span class="grip" data-col="'+ci+'" data-ck="'+esc(colKey(ci,c))+'" title="Drag to resize · double-click to reset"></span></th>';
+  });
   h+='<th class="act"></th></tr></thead><tbody>';
   arr.forEach(function(row,i){
     h+='<tr>';
@@ -1146,7 +1202,7 @@ function tableEditor(arr,cols,onChange){
     });
     h+='<td class="act"><button class="iconbtn" data-del="'+i+'" title="Delete row">✕</button></td></tr>';
   });
-  h+='</tbody></table>';
+  h+='</tbody></table></div>';
   return h;
 }
 function wireTable(el,arr,onChange){
@@ -1256,13 +1312,12 @@ function renderEditor(){
   }
 
   if(s==="stages"){
-    h+='<div class="sec"><h2>Main work categories</h2><p class="hint">Enter the baseline percentage required and the actual achieved for each work category. The page draws them side by side with the variance above each pair. Around eight to ten categories fit comfortably.</p>'+
+    h+='<div class="sec"><h2>Main work categories</h2><p class="hint">Enter the baseline percentage required and the actual achieved for each work category. The page draws them side by side with the variance above each pair — the actual bar is green when it meets the baseline and orange when it falls short. Around eight to ten categories fit comfortably.</p>'+
       '<div class="card" id="tStages">'+tableEditor(S.stages,[
         {label:"Work category",key:"name"},
         {label:"Baseline required %",key:"plan",type:"number",step:"0.1",w:"165px"},
         {label:"Actual %",key:"pct",type:"number",step:"0.1",w:"120px"},
-        {label:"Variance",type:"calc",w:"110px",calc:function(r){var d=num(r.pct)-num(r.plan);return (d>=0?"+":"")+d.toFixed(1)+"%";}},
-        {label:"Colour band",key:"tone",type:"select",options:["green","accent","slate","muted"],w:"140px"}
+        {label:"Variance",type:"calc",w:"110px",calc:function(r){var d=num(r.pct)-num(r.plan);return (d>=0?"+":"")+d.toFixed(1)+"%";}}
       ])+'<div class="rowbtns" id="bStages"><span class="tot">'+S.stages.length+' categories · baseline '+
       stageAvg("plan").toFixed(1)+'% · actual '+stageAvg("pct").toFixed(1)+'% · '+stageBehind()+' behind</span></div></div>'+
       '<div class="card"><h3>Line under the cards</h3><div id="fStageNote">'+
@@ -1271,27 +1326,49 @@ function renderEditor(){
 
   if(s==="ipt"){
     var t=iptTotals();
-    h+='<div class="sec"><h2>IPT progress</h2><p class="hint">One row per activity front. Set Section to <strong>Extra IPT</strong> for work outside the planned IPT — planned drops to 0% and the row moves to its own block under the main activities.</p>'+
+    h+='<div class="sec"><h2>IPT progress</h2><p class="hint">One card per activity. Add a TH line for each location — the activity percentage is worked out from them, weighted by value. Set Section to <strong>Extra IPT</strong> for work outside the planned IPT.</p>'+
       '<div class="card"><h3>Total IPT value</h3><div class="grid" id="fIptCost">'+
         field("Total IPT cost ("+cur()+")",S,"iptCost","number")+
         '</div><p class="hint" style="margin:12px 0 0">Each planned activity\'s weightage is its value divided by this total. Extra IPTs are counted separately, outside the IPT value.</p>'+
-        '<p class="hint" id="iptAlloc" style="margin:6px 0 0"></p></div>'+
-      '<div class="card" id="tIpt">'+tableEditor(S.ipt,[
-        {label:"Activity",key:"activity"},
-        {label:"Section",key:"extra",type:"boolsel",options:["Planned IPT","Extra IPT"],w:"140px"},
-        {label:"TH",key:"th",w:"110px"},
-        {label:"Villas",key:"villas",type:"number",w:"85px"},
-        {label:"Planned %",key:"plan",type:"number",w:"105px"},
-        {label:"Actual %",key:"pct",type:"number",w:"105px"},
-        {label:"Value ("+cur()+")",key:"value",type:"number",w:"125px"},
-        {label:"Weightage %",type:"calc",w:"110px",calc:function(r){return iptCost()?(weightOf(r).toFixed(2)+"%"+(r.extra?" *":"")):"—";}},
-        {label:"Remarks",key:"remarks"}
-      ])+'<div class="rowbtns" id="bIpt"><span class="tot">'+iptSplit().main.length+' planned · '+iptSplit().extra.length+' extra · '+cur()+' '+money(t.value)+' · '+t.fronts+' villa-activity fronts</span></div></div></div>';
+        '<p class="hint" id="iptAlloc" style="margin:6px 0 0"></p></div>';
+
+    S.ipt.forEach(function(r,ai){
+      var q=r.subs||[];
+      h+='<div class="card"><div class="throw">'+
+         '<input type="text" class="actname" data-ai="'+ai+'" data-ak="activity" value="'+esc(r.activity)+'" placeholder="Activity">'+
+         '<select data-ai="'+ai+'" data-ak="extra" data-abool="1" style="width:130px">'+
+           ["Planned IPT","Extra IPT"].map(function(o,oi){
+             return '<option'+((oi===1)===!!r.extra?" selected":"")+'>'+o+'</option>';}).join("")+'</select>'+
+         '<label class="f" style="margin:0 0 0 6px">Planned %</label>'+
+         '<input type="number" data-ai="'+ai+'" data-ak="plan" value="'+esc(r.plan)+'" style="width:80px">'+
+         '<span class="thtot">'+rowPct(r).toFixed(1)+'% · '+cur()+' '+money(rowValue(r))+
+           (iptCost()?(' · weightage '+weightOf(r).toFixed(2)+'%'):'')+'</span>'+
+         '<button class="iconbtn" data-delact="'+ai+'" title="Delete activity">✕</button></div>'+
+         '<table class="ed"><thead><tr><th style="width:130px">TH</th><th style="width:90px">Villas</th>'+
+         '<th style="width:110px">% done</th><th style="width:140px">Value ('+cur()+')</th><th>Remarks</th><th class="act"></th></tr></thead><tbody>';
+      q.forEach(function(x,si){
+        h+='<tr>'+["th","villas","pct","value","remarks"].map(function(k){
+            var numeric=(k==="villas"||k==="pct"||k==="value");
+            return '<td><input type="'+(numeric?"number":"text")+'" data-ai="'+ai+'" data-si="'+si+'" data-sk="'+k+'" value="'+esc(x[k])+'"></td>';
+          }).join("")+
+          '<td class="act"><button class="iconbtn" data-delsub="'+ai+'.'+si+'" title="Delete line">✕</button></td></tr>';
+      });
+      if(!q.length)h+='<tr><td colspan="6" style="padding:8px 10px;color:var(--muted)">No TH lines yet — the activity uses its own figures.</td></tr>';
+      h+='</tbody></table><div class="rowbtns"><button class="sbtn" data-addsub="'+ai+'">Add TH line</button>'+
+         '<input type="text" data-ai="'+ai+'" data-ak="remarks" value="'+esc(r.remarks||"")+'" placeholder="Activity remarks" style="flex:1;min-width:200px"></div></div>';
+    });
+
+    h+='<div class="rowbtns"><button class="sbtn" id="addAct">Add activity</button>'+
+       '<span class="tot">'+iptSplit().main.length+' planned · '+iptSplit().extra.length+' extra · '+
+       cur()+' '+money(t.value)+' · '+t.fronts+' villa-activity fronts</span></div></div>';
   }
 
   if(s==="res"){
     var tp=costTot("planned"), ta=costTot("actual");
     h+='<div class="sec"><h2>Manpower cost</h2><p class="hint">Cost planned against actual spend for each supply party. Where spend has gone past the plan, write the reason in the last column — those notes are printed on the page.</p>'+
+      '<div class="card"><h3>Total days worked</h3><div class="grid" id="fManDays">'+
+        field("Total days",S,"manDays","number")+
+        '</div><p class="hint" style="margin:12px 0 0">The average cost per day on the page is the total actual cost divided by this figure.</p></div>'+
       '<div class="card" id="tCost">'+tableEditor(S.costs,[
         {label:"Supply party",key:"party"},
         {label:"Cost planned ("+cur()+")",key:"planned",type:"number",w:"165px"},
@@ -1532,8 +1609,7 @@ function renderEditor(){
   }
   var maps=[
     ["tTrades","bTrades",S.trades,function(){return{name:"",pct:0,move:"+0.0",inst:0,mat:0,note:""};},"Add trade"],
-    ["tStages","bStages",S.stages,function(){return{name:"",plan:0,pct:0,tone:"slate"};},"Add category"],
-    ["tIpt","bIpt",S.ipt,function(){return{activity:"",th:"",villas:0,plan:0,pct:0,value:0,remarks:""};},"Add activity"],
+    ["tStages","bStages",S.stages,function(){return{name:"",plan:0,pct:0};},"Add category"],
     ["tCost","bCost",S.costs,function(){return{party:"",planned:0,actual:0,comment:""};},"Add party"],
     ["tMat","bMat",S.materials,function(){return{item:"",budget:0,spent:0,comment:""};},"Add material"],
     ["tRisk","bRisk",S.concerns,function(){return{sev:"MEDIUM",title:"",detail:"",owner:""};},"Add concern"],
@@ -1552,10 +1628,55 @@ function renderEditor(){
   w.querySelectorAll("[data-flag]").forEach(function(f){
     f.onchange=function(){S[f.dataset.flag]=f.checked;save();renderEditor();};
   });
+  if(s==="ipt"){
+    w.querySelectorAll("[data-ak]").forEach(function(f){
+      var handler=function(){
+        var r=S.ipt[+f.dataset.ai];
+        if(f.dataset.abool){ r.extra=(f.value==="Extra IPT"); if(r.extra)r.plan=0; save(); renderEditor(); return; }
+        r[f.dataset.ak]=(f.type==="number")?num(f.value):f.value;
+        save(); refreshIptCalc();
+      };
+      f.oninput=handler; f.onchange=handler;
+    });
+    w.querySelectorAll("[data-sk]").forEach(function(f){
+      f.oninput=function(){
+        var r=S.ipt[+f.dataset.ai], x=(r.subs||[])[+f.dataset.si]; if(!x)return;
+        x[f.dataset.sk]=(f.type==="number")?num(f.value):f.value;
+        save();
+      };
+      f.onchange=function(){renderEditor();};
+    });
+    w.querySelectorAll("[data-addsub]").forEach(function(b){
+      b.onclick=function(){
+        var r=S.ipt[+b.dataset.addsub];
+        if(!r.subs)r.subs=[];
+        r.subs.push({th:"TH-",villas:0,pct:0,value:0,remarks:""});
+        save();renderEditor();
+      };
+    });
+    w.querySelectorAll("[data-delsub]").forEach(function(b){
+      b.onclick=function(){var q=b.dataset.delsub.split(".");
+        S.ipt[+q[0]].subs.splice(+q[1],1);save();renderEditor();};
+    });
+    w.querySelectorAll("[data-delact]").forEach(function(b){
+      b.onclick=function(){S.ipt.splice(+b.dataset.delact,1);save();renderEditor();};
+    });
+    var aa=document.getElementById("addAct");
+    if(aa)aa.onclick=function(){
+      S.ipt.push({activity:"",th:"",villas:0,plan:0,pct:0,value:0,extra:false,remarks:"",subs:[]});
+      save();renderEditor();
+    };
+  }
+  var md=document.getElementById("fManDays");
+  if(md)md.querySelectorAll("[data-o]").forEach(function(f){
+    f.oninput=function(){S.manDays=num(f.value);save();};
+    f.onchange=function(){renderEditor();};
+  });
   var ic=document.getElementById("fIptCost");
   if(ic)ic.querySelectorAll("[data-o]").forEach(function(f){
     f.oninput=function(){S.iptCost=num(f.value);save();refreshIptCalc();};   // keeps the caret in the box
   });
+  wireResizers(w);
   refreshIptCalc();
   ["fStageNote","fCostNote","fMatNote","fProcNote","fLookNote","fClose"].forEach(function(id){
     var el=document.getElementById(id);if(!el)return;
@@ -1566,6 +1687,35 @@ function renderEditor(){
   });
 }
 
+function wireResizers(root){
+  root.querySelectorAll(".grip").forEach(function(g){
+    g.onmousedown=function(e){
+      e.preventDefault();
+      var th=g.parentNode, table=th.closest("table"), ci=+g.dataset.col;
+      var col=table.querySelectorAll("colgroup col")[ci];
+      var startX=e.clientX, startW=th.getBoundingClientRect().width;
+      document.body.style.cursor="col-resize";
+      function move(ev){
+        var wpx=Math.max(60,Math.round(startW+(ev.clientX-startX)));
+        col.style.width=wpx+"px";
+      }
+      function up(){
+        document.removeEventListener("mousemove",move);
+        document.removeEventListener("mouseup",up);
+        document.body.style.cursor="";
+        if(!STORE.colw)STORE.colw={};
+        STORE.colw[g.dataset.ck]=parseInt(col.style.width,10)||0;
+        saveStore();
+      }
+      document.addEventListener("mousemove",move);
+      document.addEventListener("mouseup",up);
+    };
+    g.ondblclick=function(){
+      if(STORE.colw)delete STORE.colw[g.dataset.ck];
+      saveStore(); renderEditor();
+    };
+  });
+}
 function refreshIptCalc(){
   document.querySelectorAll("td.calc[data-calc]").forEach(function(td){
     var r=S.ipt[+td.dataset.calc];
@@ -1825,46 +1975,58 @@ function wrap2(str,perLine){
   }
   return lines;
 }
-function pageStages(pgm,n){
-  var h=head(pgm,n), rows=S.stages||[];
-  var bw=12.13*SX*PXI, bh=4.6*SY*PXI;
-  var padL=58,padR=18,padT=30,padB=82;
-  var plot=bh-padT-padB, gw=(bw-padL-padR)/Math.max(rows.length,1);
-  var svg='<svg width="'+bw+'" height="'+bh+'" style="font-family:'+FONT("B")+'">';
-  for(var g=0;g<=10;g++){
-    var v=g*10, y=bh-padB-plot*(g/10);
-    svg+='<line x1="'+padL+'" y1="'+y+'" x2="'+(bw-padR)+'" y2="'+y+'" stroke="'+(g?"#E4ECEA":"#C6D4D2")+'"/>';
-    svg+='<text x="'+(padL-10)+'" y="'+(y+4)+'" text-anchor="end" font-size="10pt" fill="#'+C.slate+'">'+v+'%</text>';
+/* Work categories chart — one geometry, drawn by both the preview and PowerPoint */
+function stagesGeom(){
+  var rows=S.stages||[];
+  var X=0.6, Y=1.55, W=12.13, H=4.6;
+  var padL=0.62, padR=0.19, padT=0.42, padB=0.95;
+  var plot=H-padT-padB, yB=Y+padT+plot;
+  var n=Math.max(rows.length,1), gw=(W-padL-padR)/n;
+  var bwid=Math.min(gw*0.30,0.34), gap=Math.max(gw*0.05,0.03);
+  var g={grid:[],bars:[],texts:[],legend:[]};
+
+  for(var i=0;i<=10;i++){
+    var v=i*10, y=yB-plot*(i/10);
+    g.grid.push({x:X+padL,y:y,w:W-padL-padR,first:i===0});
+    g.texts.push({x:X,y:y-0.11,w:padL-0.10,h:0.22,text:v+"%",align:"right",size:9.5,color:C.slate});
   }
-  var bwid=Math.min(gw*0.30,34), gap=Math.max(gw*0.05,3);
+
   rows.forEach(function(st,i){
-    var cx=padL+gw*i+gw/2;
+    var cx=X+padL+gw*i+gw/2;
     var pl=Math.max(0,Math.min(100,num(st.plan))), ac=Math.max(0,Math.min(100,num(st.pct)));
-    var behind=ac<pl, tall=0;
-    [[pl,C.muted,"baseline"],[ac,toneHex(st.tone),"actual"]].forEach(function(sr,j){
-      var hgt=plot*(sr[0]/100), x=cx-bwid-gap/2+j*(bwid+gap), y=bh-padB-hgt;
+    var ok=ac>=pl, actColour=ok?C.green:C.terra, tall=0;
+    [[pl,C.muted],[ac,actColour]].forEach(function(sr,j){
+      var hgt=plot*(sr[0]/100), x=cx-bwid-gap/2+j*(bwid+gap);
       tall=Math.max(tall,hgt);
-      svg+='<rect x="'+x+'" y="'+y+'" width="'+bwid+'" height="'+Math.max(hgt,0)+'" rx="3" fill="#'+sr[1]+'"/>';
-      svg+='<text x="'+(x+bwid/2)+'" y="'+(y-7)+'" text-anchor="middle" font-size="9pt" font-weight="700" fill="#'+
-           (sr[0]?sr[1]:C.muted)+'">'+sr[0].toFixed(1)+'%</text>';
+      if(hgt>0)g.bars.push({x:x,y:yB-hgt,w:bwid,h:hgt,fill:sr[1]});
+      g.texts.push({x:x-0.16,y:yB-hgt-0.20,w:bwid+0.32,h:0.19,text:sr[0].toFixed(1)+"%",
+                    align:"center",size:8.5,bold:true,color:sr[0]?sr[1]:C.muted});
     });
-    var d=ac-pl;
-    svg+='<text x="'+cx+'" y="'+(bh-padB-tall-24)+'" text-anchor="middle" font-size="9pt" font-weight="700" fill="#'+
-         (behind?C.red:C.green)+'">'+(d>=0?"+":"")+d.toFixed(1)+'%</text>';
+    var d=ac-pl, lw=Math.min(1.4,gw*1.4);
+    g.texts.push({x:cx-lw/2,y:yB-tall-0.40,w:lw,h:0.20,text:(d>=0?"+":"")+d.toFixed(1)+"%",
+                  align:"center",size:9,bold:true,color:actColour});
     wrap2(st.name,13).forEach(function(ln,k){
-      svg+='<text x="'+cx+'" y="'+(bh-padB+22+k*15)+'" text-anchor="middle" font-size="11pt" fill="#'+
-           (behind?C.red:C.teal2)+'">'+esc(ln)+'</text>';
+      g.texts.push({x:cx-gw/2,y:yB+0.10+k*0.17,w:gw,h:0.18,text:ln,align:"center",size:10.5,color:ok?C.teal2:C.terra});
     });
   });
-  var lx=padL;
-  [["Baseline required",C.muted],["Actual",C.chart]].forEach(function(l){
-    svg+='<rect x="'+lx+'" y="'+(bh-20)+'" width="11" height="11" rx="2" fill="#'+l[1]+'"/>';
-    svg+='<text x="'+(lx+16)+'" y="'+(bh-11)+'" font-size="10.5pt" fill="#'+C.slate+'">'+l[0]+'</text>';
-    lx+=String(l[0]).length*6.5+42;
+
+  var lx=X+padL;
+  [["Baseline required",C.muted],["At or above baseline",C.green],["Behind baseline",C.terra]].forEach(function(l){
+    g.legend.push({x:lx,y:Y+H-0.24,w:0.13,h:0.13,fill:l[1]});
+    g.texts.push({x:lx+0.2,y:Y+H-0.28,w:2.0,h:0.22,text:l[0],align:"left",size:10.5,color:C.slate});
+    lx+=0.2+String(l[0]).length*0.072+0.34;
   });
-  svg+='<text x="'+(lx+4)+'" y="'+(bh-11)+'" font-size="10pt" fill="#'+C.muted+'">actual bars keep each category colour</text>';
-  svg+='</svg>';
-  h+='<div style="'+BX(0.6,1.55,12.13,4.6)+'">'+svg+'</div>';
+  return g;
+}
+
+function pageStages(pgm,n){
+  var h=head(pgm,n), g=stagesGeom(), rows=S.stages||[];
+  g.grid.forEach(function(l){ h+=RECT(l.x,l.y,l.w,0.012,l.first?"C6D4D2":"E4ECEA"); });
+  g.bars.forEach(function(b){ h+=RECT(b.x,b.y,b.w,b.h,b.fill,null,0.02); });
+  g.legend.forEach(function(l){ h+=RECT(l.x,l.y,l.w,l.h,l.fill,null,0.02); });
+  g.texts.forEach(function(t){
+    h+=TX(t.text,{x:t.x,y:t.y,w:t.w,h:t.h,f:"B",size:t.size,bold:t.bold,color:t.color,align:t.align});
+  });
   h+=TX(rows.length+" work categories  ·  baseline "+stageAvg("plan").toFixed(1)+"%  ·  actual "+
         stageAvg("pct").toFixed(1)+"%  ·  "+stageBehind()+" behind baseline  ·  "+
         scopeVillas()+" villas across "+scopeTH()+" townhouses.  "+tok(S.stageNote||""),
@@ -1885,10 +2047,19 @@ function pageIpt(pgm,n,part){
                  {skip:true},{skip:true},{skip:true},{skip:true},{skip:true},{skip:true},{skip:true}]);
       return;
     }
-    var r=e.r;
-    rows.push([r.activity,r.th,String(r.villas),num(r.plan)+"%",num(r.pct)+"%",money(r.value),
+    var r=e.r, bg=ri%2===0?C.white:C.sand;
+    if(e.sub){
+      var x=e.sub;
+      rows.push([{text:"",fill:bg},{text:x.th||"",fill:bg,color:C.slate,size:9,align:"center"},
+        {text:String(num(x.villas)),fill:bg,color:C.slate,size:9,align:"center"},
+        {text:"",fill:bg},{text:num(x.pct)+"%",fill:bg,color:C.terra,size:9,align:"center"},
+        {text:money(num(x.value)),fill:bg,color:C.slate,size:9,align:"center"},
+        {text:"",fill:bg},{text:x.remarks||"",fill:bg,color:C.slate,size:9}]);
+      return;
+    }
+    rows.push([r.activity,rowTH(r),String(rowVillas(r)),num(r.plan)+"%",rowPct(r).toFixed(0)+"%",money(rowValue(r)),
                (weightOf(r).toFixed(2)+"%"+(r.extra?" *":"")),r.remarks].map(function(c,ci){
-      return {text:c,fill:ri%2===0?C.white:C.sand,
+      return {text:c,fill:bg,
               color:ci===0?C.teal:(ci===4?C.terra:(ci===6?(r.extra?C.gold:C.chart):C.teal2)),
               bold:ci===0||ci===4||ci===6,size:9.5,align:(ci>=2&&ci<=6)?"center":"left"};}));
   });
@@ -1938,16 +2109,21 @@ function pageRes(pgm,n){
   svg+='</svg>';
   h+='<div style="'+BX(0.6,1.55,7.3,4.6)+'">'+svg+'</div>';
 
-  var tp=costTot("planned"), ta=costTot("actual");
-  [["Total cost planned",cur()+" "+money(tp),C.chart],
+  var tp=costTot("planned"), ta=costTot("actual"), dy=manDays(), cv=tp-ta;
+  var cards=[["Total cost planned",cur()+" "+money(tp),C.chart],
    ["Total actual cost",cur()+" "+money(ta),C.terra],
-   ["Spent against plan",(tp?(ta/tp*100).toFixed(1):"0.0")+"%",C.teal]].forEach(function(r,i){
-    var y=1.55+i*1.06;
-    h+=CARD(8.05,y,4.68,0.94,C.white);
-    h+=TX(r[0],{x:8.3,y:y+0.14,w:4.2,h:0.26,f:"B",size:11.5,bold:true,color:C.slate});
-    h+=TX(r[1],{x:8.3,y:y+0.42,w:4.2,h:0.42,f:"H",size:20,bold:true,color:r[2],valign:"middle"});
+   ["Spent against plan",(tp?(ta/tp*100).toFixed(1):"0.0")+"%",C.teal],
+   [(cv>=0?"Variance — under plan":"Variance — over plan"),cur()+" "+money(Math.abs(cv)),cv>=0?C.green:C.red],
+   ["Average manpower cost / day"+(dy?("  ("+dy+" days)"):""),dy?(cur()+" "+money(avgPerDay(ta))):"set total days",
+    dy?C.gold:C.muted]];
+  var gm=statGeom(cards.length);
+  cards.forEach(function(r,i){
+    var y=1.55+i*gm.pitch;
+    h+=CARD(8.05,y,4.68,gm.h,C.white);
+    h+=TX(r[0],{x:8.3,y:y+0.08,w:4.2,h:0.22,f:"B",size:10.5,bold:true,color:C.slate});
+    h+=TX(r[1],{x:8.3,y:y+0.30,w:4.2,h:0.34,f:"H",size:17,bold:true,color:r[2],valign:"middle"});
   });
-  h=whyCard(h,costOver(),"party",S.showCostWhy!==false,PREV_PUSH);
+  h=whyCard(h,costOver(),"party",S.showCostWhy!==false,PREV_PUSH,gm.whyTop);
   h+=TX(tok(S.costNote||""),{x:0.6,y:6.32,w:7.3,h:0.3,f:"B",size:11,color:C.teal2});
   return shell(h+foot());
 }
@@ -1991,17 +2167,20 @@ function pageMaterial(pgm,n){
   svg+='</svg>';
   h+='<div style="'+BX(0.6,1.55,7.3,4.6)+'">'+svg+'</div>';
 
-  var tb=matTot("budget"), ts=matTot("spent");
-  [["Total cost planned",cur()+" "+money(tb),C.chart],
+  var tb=matTot("budget"), ts=matTot("spent"), mv=tb-ts;
+  var mcards=[["Total cost planned",cur()+" "+money(tb),C.chart],
    ["Total actual cost",cur()+" "+money(ts),C.terra],
-   ["Spent against plan",(tb?(ts/tb*100).toFixed(1):"0.0")+"%",C.teal]].forEach(function(r,i){
-    var y=1.55+i*1.06;
-    h+=CARD(8.05,y,4.68,0.94,C.white);
-    h+=TX(r[0],{x:8.3,y:y+0.14,w:4.2,h:0.26,f:"B",size:11.5,bold:true,color:C.slate});
-    h+=TX(r[1],{x:8.3,y:y+0.42,w:4.2,h:0.42,f:"H",size:20,bold:true,color:r[2],valign:"middle"});
+   ["Spent against plan",(tb?(ts/tb*100).toFixed(1):"0.0")+"%",C.teal],
+   [(mv>=0?"Variance — under budget":"Variance — over budget"),cur()+" "+money(Math.abs(mv)),mv>=0?C.green:C.red]];
+  var mg=statGeom(mcards.length);
+  mcards.forEach(function(r,i){
+    var y=1.55+i*mg.pitch;
+    h+=CARD(8.05,y,4.68,mg.h,C.white);
+    h+=TX(r[0],{x:8.3,y:y+0.10,w:4.2,h:0.24,f:"B",size:11,bold:true,color:C.slate});
+    h+=TX(r[1],{x:8.3,y:y+0.34,w:4.2,h:0.38,f:"H",size:18,bold:true,color:r[2],valign:"middle"});
   });
 
-  h=whyCard(h,matOver(),"item",S.showMatWhy!==false,PREV_PUSH);
+  h=whyCard(h,matOver(),"item",S.showMatWhy!==false,PREV_PUSH,mg.whyTop);
   h+=TX(tok(S.materialNote||""),{x:0.6,y:6.32,w:7.3,h:0.3,f:"B",size:11,color:C.teal2});
   return shell(h+foot());
 }
@@ -2084,10 +2263,14 @@ function pageText(pgm,n){
 /* IPT chart geometry — one source of truth, rendered by both the preview and PowerPoint */
 function totalBox(){
   var t=earnedTotals();
+  var all=t.pct+t.extraPct, allVal=t.value+t.extraValue;
   return {x:9.4,y:0.40,w:2.6,h:1.05,
           label:"TOTAL PROGRESS",
-          big:iptCost()?(t.pct.toFixed(1)+"%"):"—",
-          sub:iptCost()?(cur()+" "+money(Math.round(t.value))+" earned"):"set the total IPT value"};
+          big:iptCost()?(all.toFixed(1)+"%"):"—",
+          sub:iptCost()
+            ?(cur()+" "+money(Math.round(allVal))+" earned"+
+              (t.extraPct?("  ·  incl. "+t.extraPct.toFixed(2)+"% extra"):""))
+            :"set the total IPT value"};
 }
 function iptChartGeom(part){
   part=part||0;
@@ -2115,7 +2298,7 @@ function iptChartGeom(part){
     var cx=X+padL+gw*i+gw/2, Wt=cost?weightOf(r):100;
     var anchor=null;                                  // the taller bar carries the label stack
     [["plan",C.chart],["pct",C.terra]].forEach(function(sr,j){
-      var own=Math.max(0,Math.min(100,num(r[sr[0]])));
+      var own=Math.max(0,Math.min(100,sr[0]==="pct"?rowPct(r):num(r.plan)));
       var hgt=plot*((Wt*own/100)/top), x=cx-bwid-gap/2+j*(bwid+gap);
       if(hgt>0)g.bars.push({x:x,y:yB-hgt,w:bwid,h:hgt,fill:sr[1]});
       g.texts.push({x:x-0.16,y:yB-hgt-0.20,w:bwid+0.32,h:0.19,text:own+"%",
@@ -2314,21 +2497,21 @@ async function buildPptx(){
     ftr(s);
   };
   PPT.stages=function(s,pgm,n){
-    var rows=S.stages||[];
-    s.addChart(p.ChartType.bar,[
-      {name:"Baseline required",labels:rows.map(function(c){return c.name;}),
-       values:rows.map(function(c){return Math.max(0,Math.min(100,num(c.plan)));})},
-      {name:"Actual",labels:rows.map(function(c){return c.name;}),
-       values:rows.map(function(c){return Math.max(0,Math.min(100,num(c.pct)));})}
-    ],{x:0.6,y:1.55,w:12.13,h:4.6,barDir:"col",barGrouping:"clustered",barGapWidthPct:70,
-       chartColors:[C.muted,C.chart],showTitle:false,
-       showValue:true,dataLabelPosition:"outEnd",dataLabelColor:C.teal2,
-       dataLabelFontFace:"Calibri",dataLabelFontSize:9,dataLabelFormatCode:'0.0"%"',
-       showLegend:true,legendPos:"b",legendFontFace:"Calibri",legendFontSize:10.5,legendColor:C.slate,
-       catAxisLabelColor:C.teal2,catAxisLabelFontFace:"Calibri",catAxisLabelFontSize:11,
-       valAxisLabelColor:C.slate,valAxisLabelFontFace:"Calibri",valAxisLabelFontSize:10,
-       valAxisMinVal:0,valAxisMaxVal:100,valAxisMajorUnit:10,valAxisLabelFormatCode:'0"%"',
-       valGridLine:{color:"E4ECEA",size:1},catGridLine:{style:"none"}});
+    var g=stagesGeom(), rows=S.stages||[];
+    g.grid.forEach(function(l){
+      s.addShape(p.ShapeType.rect,{x:l.x,y:l.y,w:l.w,h:0.012,
+        fill:{color:l.first?"C6D4D2":"E4ECEA"},line:{color:l.first?"C6D4D2":"E4ECEA",width:0}});
+    });
+    g.bars.forEach(function(b){
+      s.addShape(p.ShapeType.rect,{x:b.x,y:b.y,w:b.w,h:b.h,fill:{color:b.fill},line:{color:b.fill,width:0}});
+    });
+    g.legend.forEach(function(l){
+      s.addShape(p.ShapeType.rect,{x:l.x,y:l.y,w:l.w,h:l.h,fill:{color:l.fill},line:{color:l.fill,width:0}});
+    });
+    g.texts.forEach(function(t){
+      s.addText(t.text,{isTextBox:true,x:t.x,y:t.y,w:t.w,h:t.h,fontFace:"Calibri",fontSize:t.size,
+        bold:!!t.bold,color:t.color,align:t.align,margin:0,valign:"middle"});
+    });
     s.addText(rows.length+" work categories  ·  baseline "+stageAvg("plan").toFixed(1)+"%  ·  actual "+
       stageAvg("pct").toFixed(1)+"%  ·  "+stageBehind()+" behind baseline  ·  "+
       scopeVillas()+" villas across "+scopeTH()+" townhouses.  "+tok(S.stageNote||""),
@@ -2347,10 +2530,20 @@ async function buildPptx(){
           options:{colspan:8,fill:{color:C.sandd},color:C.teal,bold:true,fontSize:9.5,fontFace:"Calibri",valign:"middle"}}]);
         return;
       }
-      var r=e.r;
-      rows6.push([r.activity,r.th,String(r.villas),num(r.plan)+"%",num(r.pct)+"%",money(r.value),
+      var r=e.r, bg=ri%2===0?C.white:C.sand;
+      function cell(t,col,sz,bd,al){return {text:t,options:{fill:{color:bg},color:col,bold:!!bd,
+        fontSize:sz,fontFace:"Calibri",align:al||"left",valign:"middle"}};}
+      if(e.sub){
+        var x=e.sub;
+        rows6.push([cell("",C.teal2,9),cell(x.th||"",C.slate,9,false,"center"),
+          cell(String(num(x.villas)),C.slate,9,false,"center"),cell("",C.teal2,9),
+          cell(num(x.pct)+"%",C.terra,9,false,"center"),cell(money(num(x.value)),C.slate,9,false,"center"),
+          cell("",C.teal2,9),cell(x.remarks||"",C.slate,9)]);
+        return;
+      }
+      rows6.push([r.activity,rowTH(r),String(rowVillas(r)),num(r.plan)+"%",rowPct(r).toFixed(0)+"%",money(rowValue(r)),
                   (weightOf(r).toFixed(2)+"%"+(r.extra?" *":"")),r.remarks].map(function(c,ci){
-        return {text:c,options:{fill:{color:ri%2===0?C.white:C.sand},
+        return {text:c,options:{fill:{color:bg},
           color:ci===0?C.teal:(ci===4?C.terra:(ci===6?(r.extra?C.gold:C.chart):C.teal2)),
           bold:ci===0||ci===4||ci===6,fontSize:9.5,fontFace:"Calibri",
           align:(ci>=2&&ci<=6)?"center":"left",valign:"middle"}};}));
@@ -2402,16 +2595,21 @@ async function buildPptx(){
        valAxisLabelColor:C.slate,valAxisLabelFontFace:"Calibri",valAxisLabelFontSize:10,
        valAxisLabelFormatCode:'#,##0,"K"',valAxisMinVal:0,
        valGridLine:{color:"DDE7E5",size:1},catGridLine:{style:"none"}});
-    var tp=costTot("planned"), ta=costTot("actual");
-    [["Total cost planned",cur()+" "+money(tp),C.chart],
+    var tp=costTot("planned"), ta=costTot("actual"), dy=manDays(), cv=tp-ta;
+    var cards=[["Total cost planned",cur()+" "+money(tp),C.chart],
      ["Total actual cost",cur()+" "+money(ta),C.terra],
-     ["Spent against plan",(tp?(ta/tp*100).toFixed(1):"0.0")+"%",C.teal]].forEach(function(r,i){
-      var y=1.55+i*1.06;
-      card(s,8.05,y,4.68,0.94,C.white);
-      s.addText(r[0],{isTextBox:true,x:8.3,y:y+0.14,w:4.2,h:0.26,fontFace:"Calibri",fontSize:11.5,bold:true,color:C.slate,margin:0});
-      s.addText(r[1],{isTextBox:true,x:8.3,y:y+0.42,w:4.2,h:0.42,fontFace:"Cambria",fontSize:20,bold:true,color:r[2],margin:0,valign:"middle"});
+     ["Spent against plan",(tp?(ta/tp*100).toFixed(1):"0.0")+"%",C.teal],
+     [(cv>=0?"Variance — under plan":"Variance — over plan"),cur()+" "+money(Math.abs(cv)),cv>=0?C.green:C.red],
+     ["Average manpower cost / day"+(dy?("  ("+dy+" days)"):""),dy?(cur()+" "+money(avgPerDay(ta))):"set total days",
+      dy?C.gold:C.muted]];
+    var gm=statGeom(cards.length);
+    cards.forEach(function(r,i){
+      var y=1.55+i*gm.pitch;
+      card(s,8.05,y,4.68,gm.h,C.white);
+      s.addText(r[0],{isTextBox:true,x:8.3,y:y+0.08,w:4.2,h:0.22,fontFace:"Calibri",fontSize:10.5,bold:true,color:C.slate,margin:0});
+      s.addText(r[1],{isTextBox:true,x:8.3,y:y+0.30,w:4.2,h:0.34,fontFace:"Cambria",fontSize:17,bold:true,color:r[2],margin:0,valign:"middle"});
     });
-    whyCard("",costOver(),"party",S.showCostWhy!==false,pptPush(s));
+    whyCard("",costOver(),"party",S.showCostWhy!==false,pptPush(s),gm.whyTop);
     s.addText(tok(S.costNote||""),{isTextBox:true,x:0.6,y:6.32,w:7.3,h:0.3,fontFace:"Calibri",fontSize:11,color:C.teal2,margin:0});
     ftr(s);
   };
@@ -2430,17 +2628,20 @@ async function buildPptx(){
        valAxisMinVal:0,valAxisLabelFormatCode:'#,##0,"K"',
        valGridLine:{color:"DDE7E5",size:1},catGridLine:{style:"none"}});
 
-    var tb=matTot("budget"), ts=matTot("spent");
-    [["Total cost planned",cur()+" "+money(tb),C.chart],
+    var tb=matTot("budget"), ts=matTot("spent"), mv=tb-ts;
+    var mcards=[["Total cost planned",cur()+" "+money(tb),C.chart],
      ["Total actual cost",cur()+" "+money(ts),C.terra],
-     ["Spent against plan",(tb?(ts/tb*100).toFixed(1):"0.0")+"%",C.teal]].forEach(function(r,i){
-      var y=1.55+i*1.06;
-      card(s,8.05,y,4.68,0.94,C.white);
-      s.addText(r[0],{isTextBox:true,x:8.3,y:y+0.14,w:4.2,h:0.26,fontFace:"Calibri",fontSize:11.5,bold:true,color:C.slate,margin:0});
-      s.addText(r[1],{isTextBox:true,x:8.3,y:y+0.42,w:4.2,h:0.42,fontFace:"Cambria",fontSize:20,bold:true,color:r[2],margin:0,valign:"middle"});
+     ["Spent against plan",(tb?(ts/tb*100).toFixed(1):"0.0")+"%",C.teal],
+     [(mv>=0?"Variance — under budget":"Variance — over budget"),cur()+" "+money(Math.abs(mv)),mv>=0?C.green:C.red]];
+    var mg=statGeom(mcards.length);
+    mcards.forEach(function(r,i){
+      var y=1.55+i*mg.pitch;
+      card(s,8.05,y,4.68,mg.h,C.white);
+      s.addText(r[0],{isTextBox:true,x:8.3,y:y+0.10,w:4.2,h:0.24,fontFace:"Calibri",fontSize:11,bold:true,color:C.slate,margin:0});
+      s.addText(r[1],{isTextBox:true,x:8.3,y:y+0.34,w:4.2,h:0.38,fontFace:"Cambria",fontSize:18,bold:true,color:r[2],margin:0,valign:"middle"});
     });
 
-    whyCard("",matOver(),"item",S.showMatWhy!==false,pptPush(s));
+    whyCard("",matOver(),"item",S.showMatWhy!==false,pptPush(s),mg.whyTop);
     s.addText(tok(S.materialNote||""),{isTextBox:true,x:0.6,y:6.32,w:7.3,h:0.3,fontFace:"Calibri",fontSize:11,color:C.teal2,margin:0});
     ftr(s);
   };
@@ -2571,7 +2772,7 @@ var SHEETS=[
   ["KPI",       function(){return Object.keys(S.kpi).map(function(k){return{Field:k,Value:S.kpi[k]};});},
                 function(rows){rows.forEach(function(r){if(r.Field)S.kpi[r.Field]=num(r.Value);});}],
   ["Trades",    function(){return S.trades;},          function(r){S.trades=r.map(function(x){return{name:x.name,pct:num(x.pct),move:x.move,inst:num(x.inst),mat:num(x.mat),note:x.note};});}],
-  ["Categories",function(){return S.stages;},          function(r){S.stages=r.map(function(x){return{name:x.name,plan:num(x.plan),pct:num(x.pct),tone:x.tone||"slate"};});}],
+  ["Categories",function(){return S.stages;},          function(r){S.stages=r.map(function(x){return{name:x.name,plan:num(x.plan),pct:num(x.pct)};});}],
   ["IPT",       function(){return S.ipt;},             function(r){S.ipt=r.map(function(x){var ex=(x.extra===true||String(x.extra).toLowerCase()==="true"||String(x.extra).toLowerCase()==="extra");
                   return{activity:x.activity,th:x.th,villas:num(x.villas),plan:ex?0:num(x.plan),pct:num(x.pct),value:num(x.value),extra:ex,remarks:x.remarks};});}],
   ["Materials", function(){return S.materials;},       function(r){S.materials=r.map(function(x){return{item:x.item,budget:num(x.budget),spent:num(x.spent),comment:x.comment||""};});}],
@@ -2586,7 +2787,7 @@ var SHEETS=[
                   if(b.length)S.closing.bullets=b;}],
   ["Notes",     function(){return [{Field:"stageNote",Value:S.stageNote},
                   {Field:"procNote",Value:S.procNote},{Field:"lookNote",Value:S.lookNote},
-                  {Field:"costNote",Value:S.costNote},{Field:"iptCost",Value:S.iptCost},{Field:"materialNote",Value:S.materialNote},
+                  {Field:"costNote",Value:S.costNote},{Field:"iptCost",Value:S.iptCost},{Field:"manDays",Value:S.manDays},{Field:"materialNote",Value:S.materialNote},
                   {Field:"showCostWhy",Value:S.showCostWhy},{Field:"showMatWhy",Value:S.showMatWhy}];},
                 function(rows){rows.forEach(function(r){
                   if(r.Field==="stageNote")S.stageNote=r.Value;
@@ -2594,6 +2795,7 @@ var SHEETS=[
                   else if(r.Field==="lookNote")S.lookNote=r.Value;
                   else if(r.Field==="costNote")S.costNote=r.Value;
                   else if(r.Field==="iptCost")S.iptCost=num(r.Value);
+                  else if(r.Field==="manDays")S.manDays=num(r.Value);
                   else if(r.Field==="materialNote")S.materialNote=r.Value;
                   else if(r.Field==="showCostWhy")S.showCostWhy=(String(r.Value).toLowerCase()!=="false");
                   else if(r.Field==="showMatWhy")S.showMatWhy=(String(r.Value).toLowerCase()!=="false");
