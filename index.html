@@ -101,6 +101,9 @@ table.ed{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;m
 table.ed th{position:relative}
 table.ed td input,table.ed td select{width:100%;min-width:0}
 .grip{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:2}
+td.reorder{white-space:nowrap;padding:4px 6px}
+table.ed button.mv{padding:2px 6px;margin-right:2px}
+table.ed button.mv:disabled{opacity:.3;cursor:default}
 .grip:hover{background:var(--chart);opacity:.5}
 table.ed th{
   text-align:left;background:#F2F7F7;color:var(--teal);font-weight:600;
@@ -338,24 +341,24 @@ var THEMES=[
       pageBg:"FFFFFF",coverBg:"F7FAFC",coverInk:"14304F",motifColor:"B8CBDD"}},
   {id:"forest",name:"Forest & Moss",
    c:{ink:"1C4433",body:"2F5B47",slate:"5E7F6E",muted:"9DB3A6",accent:"C06A2E",accent2:"A8892A",
-      chart:"2E7D5B",good:"3F8F5F",bad:"A33B2A",cardBg:"F6FAF6",cardLine:"DCE8DE",
+      chart:"2E5F7D",good:"3F8F5F",bad:"A33B2A",cardBg:"F1F7F1",cardLine:"DCE8DE",
       pageBg:"FFFFFF",coverBg:"F7FBF8",coverInk:"1C4433",motifColor:"B4CDBC"}},
   {id:"desert",name:"Desert Sand",
    c:{ink:"4A3520",body:"6B4E30",slate:"8A6F4E",muted:"B39B78",accent:"B5622B",accent2:"9C7C1E",
-      chart:"A07C3E",good:"5F8A4A",bad:"9E3B24",cardBg:"FCF7EE",cardLine:"E9DCC5",
+      chart:"4A6B8A",good:"5F8A4A",bad:"9E3B24",cardBg:"FCF7EE",cardLine:"E9DCC5",
       pageBg:"FFFFFF",coverBg:"FDFAF3",coverInk:"4A3520",motifColor:"D8C7A6"}},
   {id:"slate",name:"Slate & Sky",
-   c:{ink:"27333D",body:"3D4C58",slate:"667887",muted:"9FAFBC",accent:"2F7FA8",accent2:"7A8B99",
-      chart:"3E86AE",good:"3B8B72",bad:"A34434",cardBg:"F5F8FA",cardLine:"DEE7ED",
+   c:{ink:"27333D",body:"3D4C58",slate:"667887",muted:"9FAFBC",accent:"C2643A",accent2:"2F7FA8",
+      chart:"7A8B99",good:"3B8B72",bad:"A34434",cardBg:"F5F8FA",cardLine:"DEE7ED",
       pageBg:"FFFFFF",coverBg:"F8FBFC",coverInk:"27333D",motifColor:"BFD2DE"}},
   {id:"plum",name:"Plum & Clay",
-   c:{ink:"3E2540",body:"573A58",slate:"7C6480",muted:"AC9BAF",accent:"B4553F",accent2:"96702F",
-      chart:"70487A",good:"3F7F63",bad:"9B3A2E",cardBg:"FAF6FA",cardLine:"E7DCE8",
+   c:{ink:"3E2540",body:"573A58",slate:"7C6480",muted:"AC9BAF",accent:"B4553F",accent2:"3F8F86",
+      chart:"96702F",good:"3F7F63",bad:"9B3A2E",cardBg:"FAF6FA",cardLine:"E7DCE8",
       pageBg:"FFFFFF",coverBg:"FBF8FB",coverInk:"3E2540",motifColor:"CFBBD2"}},
   {id:"mono",name:"Monochrome",
-   c:{ink:"1F1F1F",body:"3A3A3A",slate:"6B6B6B",muted:"9E9E9E",accent:"1F1F1F",accent2:"6B6B6B",
-      chart:"4A4A4A",good:"3D6B4C",bad:"8C3428",cardBg:"F6F6F6",cardLine:"E1E1E1",
-      pageBg:"FFFFFF",coverBg:"FFFFFF",coverInk:"1F1F1F",motifColor:"D4D4D4"}}
+   c:{ink:"1A1A1A",body:"3A3A3A",slate:"6B6B6B",muted:"9E9E9E",accent:"4A4A4A",accent2:"A8A8A8",
+      chart:"7A7A7A",good:"3D6B4C",bad:"8C3428",cardBg:"F2F2F2",cardLine:"E1E1E1",
+      pageBg:"FFFFFF",coverBg:"FFFFFF",coverInk:"1A1A1A",motifColor:"D4D4D4"}}
 ];
 function themeById(id){return THEMES.filter(function(t){return t.id===id;})[0]||THEMES[0];}
 
@@ -485,12 +488,13 @@ function defaults(){return{
   },
   kpi:{source:"trades",actual:59.1,planned:61.5,weekly:1.8},
   trades:[
-    {name:"Electrical",pct:64.2,move:"+2.1",inst:820000,mat:1240000,note:"2nd fix leading all MEP trades"},
-    {name:"Plumbing",pct:61.8,move:"+1.9",inst:540000,mat:690000,note:"Awaiting UPVC stack delivery"},
-    {name:"HVAC",pct:55.3,move:"+1.2",inst:610000,mat:980000,note:"FCU supply is the constraint"},
-    {name:"LPG",pct:41.6,move:"+0.8",inst:120000,mat:150000,note:"Subcontractor approval pending"}
+    {name:"Electrical",plan:70.0,pct:64.2,move:"+2.1",inst:820000,mat:1240000,note:"2nd fix leading all MEP trades"},
+    {name:"Plumbing",plan:65.0,pct:61.8,move:"+1.9",inst:540000,mat:690000,note:"Awaiting UPVC stack delivery"},
+    {name:"HVAC",plan:60.0,pct:55.3,move:"+1.2",inst:610000,mat:980000,note:"FCU supply is the constraint"},
+    {name:"LPG",plan:45.0,pct:41.6,move:"+0.8",inst:120000,mat:150000,note:"Subcontractor approval pending"}
   ],
   stages:[
+    {name:"Tie Beam",plan:100.0,pct:42.7,tone:"accent"},
     {name:"Underground Works",plan:95.0,pct:92.4,tone:"green"},
     {name:"Slab Works",plan:88.0,pct:84.1,tone:"green"},
     {name:"1st Fix",plan:75.0,pct:71.6,tone:"green"},
@@ -502,34 +506,58 @@ function defaults(){return{
   ],
   stageNote:"Percentages show cumulative MEP completion per work category.",
   ipt:[
-    {activity:"Electrical 2nd fix",th:"TH-14 – TH-16",villas:24,plan:95,pct:92,value:486000,remarks:"On track — ready for inspection"},
-    {activity:"Conduiting & back boxes",th:"TH-27 – TH-28",villas:26,plan:60,pct:54,value:289400,remarks:"Slab conduit ahead of pour"},
-    {activity:"Cable pulling & DB termination",th:"TH-17 – TH-19",villas:22,plan:72,pct:61,value:418700,remarks:"Crew short by 12 nos."},
-    {activity:"Earthing & lightning protection",th:"TH-14 – TH-16",villas:24,plan:90,pct:88,value:132500,remarks:"Pit testing scheduled 09 Sep"},
-    {activity:"Light fittings & accessories",th:"TH-08",villas:14,plan:55,pct:42,value:196300,remarks:"Awaiting fitting delivery"},
-    {activity:"Plumbing 1st fix",th:"TH-21 – TH-22",villas:18,plan:80,pct:76,value:324800,remarks:"UPVC stack delivery awaited"},
-    {activity:"Drainage & soil stack fixing",th:"TH-20",villas:16,plan:74,pct:71,value:214600,remarks:"On track"},
-    {activity:"Water tank & pump set install",th:"TH-04",villas:12,plan:45,pct:35,value:168900,remarks:"Pump submittal under review"},
-    {activity:"HVAC ducting & FCU set",th:"TH-09 – TH-11",villas:22,plan:92,pct:84,value:612500,remarks:"40 FCUs outstanding"},
-    {activity:"Duct insulation & cladding",th:"TH-09 – TH-10",villas:18,plan:62,pct:57,value:243100,remarks:"Follows FCU set"},
-    {activity:"Chilled water piping & insulation",th:"TH-12 – TH-13",villas:20,plan:70,pct:68,value:352600,remarks:"On track"},
-    {activity:"Fresh air & exhaust fan fixing",th:"TH-11",villas:12,plan:50,pct:46,value:121700,remarks:"On track"},
-    {activity:"LPG piping & testing",th:"TH-05 – TH-07",villas:16,plan:62,pct:48,value:176400,remarks:"Subcontractor approval pending"},
-    {activity:"Testing & commissioning — MEP",th:"TH-01 – TH-02",villas:18,plan:95,pct:93,value:187400,remarks:"DEWA witness pending"},
-    {activity:"MEP snagging & handover prep",th:"TH-01 – TH-03",villas:28,plan:98,pct:97,value:241900,remarks:"Closed out this week"},
-    {activity:"Temporary power distribution",th:"TH-24 – TH-26",villas:0,plan:0,pct:64,value:96400,extra:true,remarks:"Client instruction 04 Sep"},
-    {activity:"Builders work openings — rework",th:"TH-09",villas:8,plan:0,pct:38,value:42800,extra:true,remarks:"Structural clash, VO pending"}
+    {activity:"Tie Beam",plan:100,extra:false,remarks:"",subs:[
+        {th:"TH-04",villas:18,pct:93,value:14580,remarks:"Ongoing"},
+        {th:"TH-12",villas:10,pct:35,value:8100,remarks:"Ongoing"},
+        {th:"TH-28",villas:8,pct:0,value:0,remarks:"Not ready"}
+      ]},
+    {activity:"Under Ground",plan:100,extra:false,remarks:"",subs:[
+        {th:"TH-12",villas:10,pct:0,value:0,remarks:"Not ready"},
+        {th:"TH-28",villas:8,pct:0,value:0,remarks:"Not ready"}
+      ]},
+    {activity:"FF SLAB",plan:100,extra:false,remarks:"",subs:[
+        {th:"TH-10",villas:20,pct:100,value:14080,remarks:"DONE (11-09-26)"},
+        {th:"TH-27",villas:6,pct:100,value:0,remarks:"DONE (17-08-26)"},
+        {th:"TH-33 B2",villas:12,pct:100,value:2534,remarks:"DONE (04-09-26)"},
+        {th:"TH-33 B1",villas:10,pct:35,value:7040,remarks:"Ongoing"}
+      ]},
+    {activity:"2F SLAB",plan:100,extra:false,remarks:"",subs:[
+        {th:"TH-10",villas:20,pct:0,value:0,remarks:"Not ready"},
+        {th:"TH-27",villas:6,pct:0,value:0,remarks:"Not ready"},
+        {th:"TH-33 B2",villas:12,pct:0,value:0,remarks:"Not ready"}
+      ]},
+    {activity:"ROOF SLAB",plan:100,extra:false,remarks:"",subs:[
+        {th:"TH-13",villas:14,pct:0,value:0,remarks:"Not ready"},
+        {th:"TH-27",villas:6,pct:0,value:0,remarks:"Not ready"}
+      ]},
+    {activity:"Electrical 1st fix",plan:100,extra:false,remarks:"",subs:[
+        {th:"TH-08",villas:12,pct:64,value:45780,remarks:"Ongoing"},
+        {th:"TH-25 B2",villas:14,pct:93,value:90,remarks:"Ongoing"}
+      ]},
+    {activity:"Plumbing 1st fix",plan:100,extra:false,remarks:"",subs:[
+        {th:"TH-08",villas:12,pct:25,value:22980,remarks:"Ongoing"}
+      ]},
+    {activity:"Plumbing Riser",plan:100,extra:false,remarks:"",subs:[
+        {th:"TH-25",villas:26,pct:30,value:4273,remarks:"Ongoing"},
+        {th:"TH-09",villas:12,pct:50,value:9464,remarks:"Ongoing"},
+        {th:"TH-08",villas:12,pct:0,value:0,remarks:"Plaster not done"}
+      ]},
+    {activity:"HVAC Riser",plan:100,extra:false,remarks:"",subs:[
+        {th:"TH-25",villas:26,pct:63,value:34756,remarks:"Ongoing"},
+        {th:"TH-08",villas:12,pct:0,value:0,remarks:"Plaster not done"}
+      ]}
   ],
   costs:[
-    {party:"MGC Team",planned:165172,actual:31824,comment:""},
-    {party:"Subcontractor",planned:40000,actual:10000,comment:""},
-    {party:"Manpower Supplier",planned:0,actual:0,comment:""}
+    {party:"MGC Team",planned:165172,actual:31824,daily:true,comment:""},
+    {party:"Subcontractor",planned:40000,actual:10000,daily:false,comment:""},
+    {party:"Manpower Supplier",planned:0,actual:0,daily:true,comment:""}
   ],
   showCostWhy:true,
   showMatWhy:true,
+  showDryCost:true,
   costNote:"Cost planned against actual spend to date, by supply party.",
   manDays:126,
-  iptCost:4500000,
+  iptCost:358259,
   materials:[
     {item:"Cables & wiring",budget:420000,spent:463500,comment:"Rate rise on copper plus 1,200 m extra for the revised riser route"},
     {item:"DB & switchgear",budget:310000,spent:288400,comment:""},
@@ -648,9 +676,20 @@ function migrate(){
     if(S.materialNote===undefined)S.materialNote="Budgeted material cost against committed spend to date.";
   }
   (S.materials||[]).forEach(function(m){if(m.comment===undefined)m.comment="";});
-  (S.costs||[]).forEach(function(c){if(c.comment===undefined)c.comment="";});
+  (S.ipt||[]).forEach(function(r){
+    if(r.avalue===undefined)r.avalue=Math.round(num(r.value)*num(r.pct)/100);
+    (r.subs||[]).forEach(function(x){
+      if(x.prev===undefined)x.prev=0;
+      if(x.avalue===undefined)x.avalue=Math.round(num(x.value)*(num(x.pct)-num(x.prev))/100);
+    });
+  });
+  (S.costs||[]).forEach(function(c){
+    if(c.comment===undefined)c.comment="";
+    if(c.daily===undefined)c.daily=!/subcontract/i.test(c.party||"");
+  });
   if(S.showCostWhy===undefined)S.showCostWhy=true;
   if(S.showMatWhy===undefined)S.showMatWhy=true;
+  if(S.showDryCost===undefined)S.showDryCost=true;
   var sch=num(S.schema);                       // fixed at entry: each step below is judged against it
   if(S.pages&&S.pages.length&&sch<8){
     S.pages.forEach(function(pg){
@@ -762,7 +801,7 @@ function migrate(){
     });
   }
   (S.stages||[]).forEach(function(x){if(x.plan===undefined)x.plan=num(x.pct);delete x.note;});
-  (S.trades||[]).forEach(function(t){if(t.inst===undefined)t.inst=0;if(t.mat===undefined)t.mat=0;});
+  (S.trades||[]).forEach(function(t){if(t.inst===undefined)t.inst=0;if(t.mat===undefined)t.mat=0;if(t.plan===undefined)t.plan=num(t.pct);});
   if(S.stageNote==="villas are at or beyond MEP snagging stage.")
     S.stageNote="Percentages show cumulative MEP completion per work category.";
   (S.pages||[]).forEach(function(pg,i){
@@ -885,26 +924,37 @@ function iptCost(){return num(S.iptCost);}
 function subs(r){return (r&&r.subs&&r.subs.length)?r.subs:null;}
 function rowValue(r){var q=subs(r);return q?q.reduce(function(a,x){return a+num(x.value);},0):num(r.value);}
 function rowVillas(r){var q=subs(r);return q?q.reduce(function(a,x){return a+num(x.villas);},0):num(r.villas);}
-function rowPct(r){
+function rowPct(r){                                  // value-weighted: earned / planned (after previous months), matches AED totals
   var q=subs(r); if(!q)return num(r.pct);
-  var v=rowValue(r);
-  if(v)return q.reduce(function(a,x){return a+num(x.value)*num(x.pct);},0)/v;    // weighted by value
-  var vl=rowVillas(r);
-  if(vl)return q.reduce(function(a,x){return a+num(x.villas)*num(x.pct);},0)/vl; // else by villas
-  return q.reduce(function(a,x){return a+num(x.pct);},0)/q.length;
+  if(r.extra){var c=iptCost();return c?(rowEarned(r)/c*100):0;}   // extras: earned / total IPT value
+  var v=rowPlanned(r);
+  return v ? (rowEarned(r)/v*100) : (q.reduce(function(a,x){return a+num(x.pct);},0)/q.length);
+}
+function subAVal(x){return x.avalue!==undefined?num(x.avalue):num(x.value)*num(x.pct)/100;}
+function subPlanned(x){return num(x.value)*(100-num(x.prev))/100;}          // remaining planned value after prior months
+function rowPlanned(r){
+  var q=subs(r);
+  if(!q)return num(r.value)*(100-num(r.prev||0))/100;
+  return q.reduce(function(a,x){return a+subPlanned(x);},0);
+}
+function rowEarned(r){                               // money actually earned, TH by TH
+  var q=subs(r);
+  if(!q)return r.avalue!==undefined?num(r.avalue):num(r.value)*Math.max(0,Math.min(100,num(r.pct)))/100;
+  return q.reduce(function(a,x){return a+subAVal(x);},0);
 }
 function rowTH(r){
   var q=subs(r); if(!q)return r.th||"";
   var list=q.map(function(x){return x.th;}).filter(Boolean);
   return list.length>2?(list.length+" TH"):list.join(", ");
 }
-function weightOf(r){var c=iptCost();return c?(rowValue(r)/c*100):0;}
+function weightOf(r){var c=iptCost();return c?(rowPlanned(r)/c*100):0;}
 function weightTotals(){
   var w=0,pl=0,ac=0,xw=0,xa=0;
   (S.ipt||[]).forEach(function(r){
     var x=weightOf(r);
-    if(r.extra){ xw+=x; xa+=x*rowPct(r)/100; }        // extra work sits outside the IPT value
-    else { w+=x; pl+=x*num(r.plan)/100; ac+=x*rowPct(r)/100; }
+    var e=iptCost()?(rowEarned(r)/iptCost()*100):0;   // earned share of the whole IPT value
+    if(r.extra){ xw+=x; xa+=e; }                      // extra work sits outside the IPT value
+    else { w+=x; pl+=x*num(r.plan)/100; ac+=e; }
   });
   return {weight:w,planned:pl,actual:ac,extraWeight:xw,extraActual:xa};
 }
@@ -924,10 +974,31 @@ function iptFlat(){                                  // group headers, their TH 
   if(q.extra.length){out.push({sec:true});q.extra.forEach(add);}
   return out;
 }
+function iptBlocks(){                                // activity + its TH rows kept together, never split mid-group
+  var q=iptSplit(), out=[];
+  function block(r){
+    var b=[{r:r}];
+    (subs(r)||[]).forEach(function(x){b.push({r:r,sub:x});});
+    return b;
+  }
+  q.main.forEach(function(r){out.push(block(r));});
+  if(q.extra.length){
+    out.push([{sec:true}]);
+    q.extra.forEach(function(r){out.push(block(r));});
+  }
+  return out;
+}
 function iptChunks(){
-  var f=iptFlat(), out=[];
-  if(!f.length)return [[]];
-  for(var i=0;i<f.length;i+=IPT_ROWS_PER_PAGE)out.push(f.slice(i,i+IPT_ROWS_PER_PAGE));
+  var blocks=iptBlocks(), out=[], cur=[];
+  if(!blocks.length)return [[]];
+  blocks.forEach(function(b){
+    if(cur.length && cur.length+b.length>IPT_ROWS_PER_PAGE && b.length<=IPT_ROWS_PER_PAGE){
+      out.push(cur); cur=[];                         // start a fresh page rather than split this activity
+    }
+    cur=cur.concat(b);
+    if(cur.length>=IPT_ROWS_PER_PAGE){ out.push(cur); cur=[]; }  // an oversize activity still spills naturally
+  });
+  if(cur.length)out.push(cur);
   return out;
 }
 var IPT_CHART_PER_PAGE=10;
@@ -950,7 +1021,7 @@ function iptOrdered(){var q=iptSplit();return q.main.concat(q.extra);}
 function earnedTotals(){
   var vm=0,ve=0;
   (S.ipt||[]).forEach(function(r){
-    var v=rowValue(r)*Math.max(0,Math.min(100,rowPct(r)))/100;
+    var v=rowEarned(r);
     if(r.extra)ve+=v; else vm+=v;
   });
   var wt=weightTotals();
@@ -966,7 +1037,10 @@ function earnedLine(){
 function iptTotals(){var v=0,f=0;S.ipt.forEach(function(r){v+=rowValue(r);f+=rowVillas(r);});return{value:v,fronts:f};}
 function costTot(k){return (S.costs||[]).reduce(function(a,c){return a+num(c[k]);},0);}
 function manDays(){return num(S.manDays);}
-function avgPerDay(total){var d=manDays();return d?Math.round(total/d):0;}
+function dailyBase(){                                   // subcontractor spend is left out by default
+  return (S.costs||[]).reduce(function(a,c){return a+(c.daily===false?0:num(c.actual));},0);
+}
+function avgPerDay(){var d=manDays();return d?Math.round(dailyBase()/d):0;}
 function matTot(k){return (S.materials||[]).reduce(function(a,m){return a+num(m[k]);},0);}
 function matOver(){return (S.materials||[]).filter(function(m){return num(m.spent)>num(m.budget);});}
 function costOver(){return (S.costs||[]).filter(function(c){return num(c.actual)>num(c.planned);});}
@@ -1171,19 +1245,25 @@ function colWidth(ci,c){
   if(num(saved)>0)return num(saved)+"px";
   return c.w||"";                                  // fall back to the design width
 }
-function tableEditor(arr,cols,onChange){
+function tableEditor(arr,cols,onChange,opts){
+  opts=opts||{};
   var h='<div class="edwrap"><table class="ed"><colgroup>';
+  if(opts.reorder)h+='<col style="width:56px">';
   cols.forEach(function(c,ci){
     var wdt=colWidth(ci,c);
     h+='<col'+(wdt?' style="width:'+wdt+'"':'')+'>';
   });
   h+='<col style="width:34px"></colgroup><thead><tr>';
+  if(opts.reorder)h+='<th></th>';
   cols.forEach(function(c,ci){
     h+='<th>'+esc(c.label)+'<span class="grip" data-col="'+ci+'" data-ck="'+esc(colKey(ci,c))+'" title="Drag to resize · double-click to reset"></span></th>';
   });
   h+='<th class="act"></th></tr></thead><tbody>';
   arr.forEach(function(row,i){
     h+='<tr>';
+    if(opts.reorder)h+='<td class="reorder">'+
+      '<button class="iconbtn mv" data-mvup="'+i+'"'+(i===0?" disabled":"")+' title="Move up">↑</button>'+
+      '<button class="iconbtn mv" data-mvdn="'+i+'"'+(i===arr.length-1?" disabled":"")+' title="Move down">↓</button></td>';
     cols.forEach(function(c){
       if(c.type==="calc"){
         h+='<td class="calc" data-calc="'+i+'">'+esc(c.calc(row))+'</td>';
@@ -1221,6 +1301,12 @@ function wireTable(el,arr,onChange){
   });
   el.querySelectorAll("[data-del]").forEach(function(b){
     b.onclick=function(){arr.splice(+b.dataset.del,1);save();renderEditor();};
+  });
+  el.querySelectorAll("[data-mvup]").forEach(function(b){
+    b.onclick=function(){var i=+b.dataset.mvup;if(i>0){var r=arr.splice(i,1)[0];arr.splice(i-1,0,r);save();renderEditor();}};
+  });
+  el.querySelectorAll("[data-mvdn]").forEach(function(b){
+    b.onclick=function(){var i=+b.dataset.mvdn;if(i<arr.length-1){var r=arr.splice(i,1)[0];arr.splice(i+1,0,r);save();renderEditor();}};
   });
 }
 function addBtn(label,fn){
@@ -1301,6 +1387,7 @@ function renderEditor(){
     h+='<div class="card"><h3>Disciplines</h3><p class="hint" style="margin:-4px 0 12px">Each trade gets a card on the page with its dry cost split. A trade named LPG is reported separately and is left out of the MEP average.</p>'+
       '<div id="tTrades">'+tableEditor(S.trades,[
         {label:"Trade",key:"name"},
+        {label:"Baseline %",key:"plan",type:"number",step:"0.1",w:"100px"},
         {label:"Complete %",key:"pct",type:"number",step:"0.1",w:"110px"},
         {label:"Weekly movement (%)",key:"move",w:"140px"},
         {label:"Installation ("+cur()+")",key:"inst",type:"number",w:"150px"},
@@ -1308,17 +1395,19 @@ function renderEditor(){
         {label:"Dry cost total",type:"calc",w:"140px",calc:function(t){return cur()+" "+money(tradeTotal(t));}},
         {label:"Note",key:"note"}
       ])+'<div class="rowbtns" id="bTrades"><span class="tot">'+(S.trades||[]).length+' disciplines · MEP average '+
-      mepFromTrades().toFixed(1)+'% · dry cost '+cur()+' '+money(tradesCost())+'</span></div></div></div></div>';
+      mepFromTrades().toFixed(1)+'% · dry cost '+cur()+' '+money(tradesCost())+'</span></div>'+
+      '<div class="rowbtns"><label class="tog"><input type="checkbox" id="chkDryCost"'+
+      (S.showDryCost!==false?" checked":"")+'> Show Installation / Materials / Dry cost total on the page</label></div></div></div></div>';
   }
 
   if(s==="stages"){
-    h+='<div class="sec"><h2>Main work categories</h2><p class="hint">Enter the baseline percentage required and the actual achieved for each work category. The page draws them side by side with the variance above each pair — the actual bar is green when it meets the baseline and orange when it falls short. Around eight to ten categories fit comfortably.</p>'+
+    h+='<div class="sec"><h2>Main work categories</h2><p class="hint">Enter the baseline percentage required and the actual achieved for each work category. The page draws them in the order listed below — use the arrows to reorder. The variance shows above each pair, green when it meets the baseline and orange when it falls short. Around eight to ten categories fit comfortably.</p>'+
       '<div class="card" id="tStages">'+tableEditor(S.stages,[
         {label:"Work category",key:"name"},
         {label:"Baseline required %",key:"plan",type:"number",step:"0.1",w:"165px"},
         {label:"Actual %",key:"pct",type:"number",step:"0.1",w:"120px"},
         {label:"Variance",type:"calc",w:"110px",calc:function(r){var d=num(r.pct)-num(r.plan);return (d>=0?"+":"")+d.toFixed(1)+"%";}}
-      ])+'<div class="rowbtns" id="bStages"><span class="tot">'+S.stages.length+' categories · baseline '+
+      ],null,{reorder:true})+'<div class="rowbtns" id="bStages"><span class="tot">'+S.stages.length+' categories · baseline '+
       stageAvg("plan").toFixed(1)+'% · actual '+stageAvg("pct").toFixed(1)+'% · '+stageBehind()+' behind</span></div></div>'+
       '<div class="card"><h3>Line under the cards</h3><div id="fStageNote">'+
       '<textarea data-o data-k="stageNote">'+esc(S.stageNote)+'</textarea></div></div></div>';
@@ -1326,7 +1415,7 @@ function renderEditor(){
 
   if(s==="ipt"){
     var t=iptTotals();
-    h+='<div class="sec"><h2>IPT progress</h2><p class="hint">One card per activity. Add a TH line for each location — the activity percentage is worked out from them, weighted by value. Set Section to <strong>Extra IPT</strong> for work outside the planned IPT.</p>'+
+    h+='<div class="sec"><h2>IPT progress</h2><p class="hint">One card per activity. Add a TH line for each location with its own IPT value and percentage. The activity figure on the chart is the plain average of its TH percentages; the money earned is worked out line by line. Set Section to <strong>Extra IPT</strong> for work outside the planned IPT.</p>'+
       '<div class="card"><h3>Total IPT value</h3><div class="grid" id="fIptCost">'+
         field("Total IPT cost ("+cur()+")",S,"iptCost","number")+
         '</div><p class="hint" style="margin:12px 0 0">Each planned activity\'s weightage is its value divided by this total. Extra IPTs are counted separately, outside the IPT value.</p>'+
@@ -1334,6 +1423,7 @@ function renderEditor(){
 
     S.ipt.forEach(function(r,ai){
       var q=r.subs||[];
+      var extraTH=!!r.extra, ic=iptCost();
       h+='<div class="card"><div class="throw">'+
          '<input type="text" class="actname" data-ai="'+ai+'" data-ak="activity" value="'+esc(r.activity)+'" placeholder="Activity">'+
          '<select data-ai="'+ai+'" data-ak="extra" data-abool="1" style="width:130px">'+
@@ -1341,19 +1431,45 @@ function renderEditor(){
              return '<option'+((oi===1)===!!r.extra?" selected":"")+'>'+o+'</option>';}).join("")+'</select>'+
          '<label class="f" style="margin:0 0 0 6px">Planned %</label>'+
          '<input type="number" data-ai="'+ai+'" data-ak="plan" value="'+esc(r.plan)+'" style="width:80px">'+
-         '<span class="thtot">'+rowPct(r).toFixed(1)+'% · '+cur()+' '+money(rowValue(r))+
-           (iptCost()?(' · weightage '+weightOf(r).toFixed(2)+'%'):'')+'</span>'+
+         '<span class="thtot">avg '+rowPct(r).toFixed(1)+'% · actual '+cur()+' '+money(Math.round(rowEarned(r)))+
+           ' of planned '+money(Math.round(rowPlanned(r)))+(iptCost()?(' · weightage '+weightOf(r).toFixed(2)+'%'):'')+'</span>'+
+         '<button class="iconbtn mv" data-mvupact="'+ai+'"'+(ai===0?" disabled":"")+' title="Move up">↑</button>'+
+         '<button class="iconbtn mv" data-mvdnact="'+ai+'"'+(ai===S.ipt.length-1?" disabled":"")+' title="Move down">↓</button>'+
          '<button class="iconbtn" data-delact="'+ai+'" title="Delete activity">✕</button></div>'+
-         '<table class="ed"><thead><tr><th style="width:130px">TH</th><th style="width:90px">Villas</th>'+
-         '<th style="width:110px">% done</th><th style="width:140px">Value ('+cur()+')</th><th>Remarks</th><th class="act"></th></tr></thead><tbody>';
+         (extraTH
+           ?('<table class="ed"><thead><tr><th style="width:100px">TH</th><th style="width:80px">Villas</th>'+
+              '<th style="width:150px">Actual value ('+cur()+')</th><th style="width:90px">Actual %</th><th>Remarks</th><th class="act"></th></tr></thead><tbody>')
+           :('<table class="ed"><thead><tr><th style="width:100px">TH</th><th style="width:80px">Villas</th>'+
+              '<th style="width:150px">Total IPT value for TH ('+cur()+')</th><th style="width:130px">Planned value ('+cur()+')</th>'+
+              '<th style="width:90px">Previous %</th><th style="width:90px">Actual %</th>'+
+              '<th style="width:130px">Actual value ('+cur()+')</th><th style="width:70px">Link</th><th>Remarks</th><th class="act"></th></tr></thead><tbody>'));
       q.forEach(function(x,si){
-        h+='<tr>'+["th","villas","pct","value","remarks"].map(function(k){
-            var numeric=(k==="villas"||k==="pct"||k==="value");
-            return '<td><input type="'+(numeric?"number":"text")+'" data-ai="'+ai+'" data-si="'+si+'" data-sk="'+k+'" value="'+esc(x[k])+'"></td>';
+        if(extraTH){
+          var pc=ic?(num(x.avalue)/ic*100):0;
+          h+='<tr>'+["th","villas"].map(function(k){
+              return '<td><input type="'+(k==="th"?"text":"number")+'" data-ai="'+ai+'" data-si="'+si+'" data-sk="'+k+'" value="'+esc(x[k]||0)+'"></td>';
+            }).join("")+
+            '<td><input type="number" data-ai="'+ai+'" data-si="'+si+'" data-sk="avalue" value="'+esc(x.avalue||0)+'"></td>'+
+            '<td class="calc">'+pc.toFixed(2)+'%</td>'+
+            '<td><input type="text" data-ai="'+ai+'" data-si="'+si+'" data-sk="remarks" value="'+esc(x.remarks)+'"></td>'+
+            '<td class="act"><button class="iconbtn" data-delsub="'+ai+'.'+si+'" title="Delete line">✕</button></td></tr>';
+          return;
+        }
+        var pv=num(x.value)*(100-num(x.prev))/100;
+        h+='<tr>'+["th","villas","value"].map(function(k){
+            var numeric=(k!=="th");
+            return '<td><input type="'+(numeric?"number":"text")+'" data-ai="'+ai+'" data-si="'+si+'" data-sk="'+k+'" value="'+esc(x[k]||0)+'"></td>';
           }).join("")+
+          '<td class="calc">'+money(Math.round(pv))+'</td>'+
+          ["prev","pct","avalue"].map(function(k){
+            return '<td><input type="number" data-ai="'+ai+'" data-si="'+si+'" data-sk="'+k+'" value="'+esc(x[k]||0)+'"></td>';
+          }).join("")+
+          '<td style="text-align:center"><input type="checkbox" data-ai="'+ai+'" data-si="'+si+'" data-manual="1"'+
+            (x.manual?" checked":"")+' title="On = type % and value independently, no auto-calc"></td>'+
+          '<td><input type="text" data-ai="'+ai+'" data-si="'+si+'" data-sk="remarks" value="'+esc(x.remarks)+'"></td>'+
           '<td class="act"><button class="iconbtn" data-delsub="'+ai+'.'+si+'" title="Delete line">✕</button></td></tr>';
       });
-      if(!q.length)h+='<tr><td colspan="6" style="padding:8px 10px;color:var(--muted)">No TH lines yet — the activity uses its own figures.</td></tr>';
+      if(!q.length)h+='<tr><td colspan="7" style="padding:8px 10px;color:var(--muted)">No TH lines yet — the activity uses its own figures.</td></tr>';
       h+='</tbody></table><div class="rowbtns"><button class="sbtn" data-addsub="'+ai+'">Add TH line</button>'+
          '<input type="text" data-ai="'+ai+'" data-ak="remarks" value="'+esc(r.remarks||"")+'" placeholder="Activity remarks" style="flex:1;min-width:200px"></div></div>';
     });
@@ -1372,11 +1488,15 @@ function renderEditor(){
       '<div class="card" id="tCost">'+tableEditor(S.costs,[
         {label:"Supply party",key:"party"},
         {label:"Cost planned ("+cur()+")",key:"planned",type:"number",w:"165px"},
-        {label:"Actual cost ("+cur()+")",key:"actual",type:"number",w:"165px"},
+        {label:"Actual cost ("+cur()+")",key:"actual",type:"number",w:"150px"},
+        {label:"In cost / day",key:"daily",type:"boolsel",options:["Excluded","Included"],w:"130px"},
         {label:"Why spend is higher",key:"comment"}
       ])+'<div class="rowbtns" id="bCost"><span class="tot">Planned '+cur()+' '+money(tp)+
       ' · Actual '+cur()+' '+money(ta)+' · '+(tp?(ta/tp*100).toFixed(1):"0.0")+'% spent'+
       (costOver().length?(' · '+costOver().length+' over budget'):' · nothing over budget')+'</span></div>'+
+      '<span class="tot" style="display:block;margin-top:8px">Cost / day is based on '+cur()+' '+money(dailyBase())+
+      ' from '+(S.costs||[]).filter(function(c){return c.daily!==false;}).length+' of '+(S.costs||[]).length+' parties'+
+      (manDays()?(' over '+manDays()+' days = '+cur()+' '+money(avgPerDay())+' per day'):'')+'.</span>'+
       '<div class="rowbtns"><label class="tog"><input type="checkbox" data-flag="showCostWhy"'+
       (S.showCostWhy!==false?" checked":"")+'> Show the &ldquo;why spend exceeded budget&rdquo; box on the page</label></div></div>'+
       '<div class="card"><h3>Line under the chart</h3><div id="fCostNote">'+
@@ -1547,6 +1667,8 @@ function renderEditor(){
     if(sel)sel.onchange=function(){S.kpi.source=sel.value;save();renderEditor();};
     var kb=document.getElementById("fKpi");   if(kb)wireFields(kb,S.kpi);
     var ks=document.getElementById("fKpiSrc");if(ks)wireFields(ks,S.kpi);
+    var dc=document.getElementById("chkDryCost");
+    if(dc)dc.onchange=function(){S.showDryCost=dc.checked;save();renderEditor();};
   }
   if(s==="theme"){
     w.querySelectorAll("[data-preset]").forEach(function(b){
@@ -1641,10 +1763,23 @@ function renderEditor(){
     w.querySelectorAll("[data-sk]").forEach(function(f){
       f.oninput=function(){
         var r=S.ipt[+f.dataset.ai], x=(r.subs||[])[+f.dataset.si]; if(!x)return;
-        x[f.dataset.sk]=(f.type==="number")?num(f.value):f.value;
+        var k=f.dataset.sk, v=(f.type==="number")?num(f.value):f.value;
+        x[k]=v;
+        if(!r.extra&&!x.manual){                     // extras: avalue stands alone, % just reads it against total IPT cost
+          if(k==="pct"||k==="prev"||k==="value")
+            x.avalue=Math.round(num(x.value)*(num(x.pct)-num(x.prev))/100);
+          else if(k==="avalue")
+            x.pct=num(x.value)?+(num(x.prev)+v/num(x.value)*100).toFixed(1):0;
+        }
         save();
       };
       f.onchange=function(){renderEditor();};
+    });
+    w.querySelectorAll("[data-manual]").forEach(function(f){
+      f.onchange=function(){
+        var x=(S.ipt[+f.dataset.ai].subs||[])[+f.dataset.si]; if(!x)return;
+        x.manual=f.checked; save(); refreshIptCalc();
+      };
     });
     w.querySelectorAll("[data-addsub]").forEach(function(b){
       b.onclick=function(){
@@ -1660,6 +1795,12 @@ function renderEditor(){
     });
     w.querySelectorAll("[data-delact]").forEach(function(b){
       b.onclick=function(){S.ipt.splice(+b.dataset.delact,1);save();renderEditor();};
+    });
+    w.querySelectorAll("[data-mvupact]").forEach(function(b){
+      b.onclick=function(){var i=+b.dataset.mvupact;if(i>0){var r=S.ipt.splice(i,1)[0];S.ipt.splice(i-1,0,r);save();renderEditor();}};
+    });
+    w.querySelectorAll("[data-mvdnact]").forEach(function(b){
+      b.onclick=function(){var i=+b.dataset.mvdnact;if(i<S.ipt.length-1){var r=S.ipt.splice(i,1)[0];S.ipt.splice(i+1,0,r);save();renderEditor();}};
     });
     var aa=document.getElementById("addAct");
     if(aa)aa.onclick=function(){
@@ -1865,7 +2006,7 @@ function TBL(o){
       cs+="background:#"+(c.fill||C.white)+";color:#"+(c.color||C.teal2)+";";
       cs+="font-size:"+(c.size||o.size)+"pt;font-weight:"+(c.bold?700:400)+";";
       cs+="text-align:"+(c.align||"left")+";";
-      h+='<td'+(c.span?' colspan="'+c.span+'"':"")+' style="'+cs+'">'+esc(c.text)+"</td>";
+      h+='<td'+(c.span?' colspan="'+c.span+'"':"")+(c.vspan?' rowspan="'+c.vspan+'"':"")+' style="'+cs+'">'+esc(c.text)+"</td>";
     });
     h+="</tr>";
   });
@@ -1919,6 +2060,29 @@ function execRow(pushT,x,y,w,label,value,bold){
   h+=pushT(value,{x:x+w*0.48,y:y,w:w*0.52,h:0.24,f:"B",size:9.5,color:bold?C.teal:C.teal2,bold:bold,align:"right"});
   return h;
 }
+function nearBaselineColour(a,p){
+  var ratio=p?(a/p):(a>=0?1:0);
+  return ratio>=0.95?C.green:C.terra;
+}
+function actualPlanTwoLine(a,p,cx,cw,y1,y2,size){
+  var col1=nearBaselineColour(a,p), lbl=Math.round(size*0.42);
+  var h='';
+  h+=TX('<span style="color:#'+col1+';font-weight:600;font-size:'+lbl+'pt">Actual - </span>'+
+        '<span style="color:#'+col1+'">'+a.toFixed(1)+'<span style="font-size:'+lbl+'pt">%</span></span>',
+    {x:cx,y:y1,w:cw,h:size*0.019,f:"H",size:size,bold:true,align:"center",valign:"middle",raw:true});
+  h+=TX('<span style="color:#000000;font-weight:600;font-size:'+lbl+'pt">Planned - </span>'+
+        '<span style="color:#000000">'+p.toFixed(1)+'<span style="font-size:'+lbl+'pt">%</span></span>',
+    {x:cx,y:y2,w:cw,h:size*0.019,f:"H",size:size,bold:true,align:"center",valign:"middle",raw:true});
+  return h;
+}
+function actualPlanRaw(a,p,size){
+  var col1=nearBaselineColour(a,p), sgn=Math.round(size*0.55);
+  return '<span style="color:#'+col1+';font-size:'+sgn+'pt;font-weight:600">Actual&nbsp;-&nbsp;</span>'+
+         '<span style="color:#'+col1+'">'+a.toFixed(1)+'<span style="font-size:'+sgn+'pt">%</span></span>'+
+         '<span style="color:#'+C.muted+';font-weight:400;font-size:'+sgn+'pt;padding:0 6px"> / </span>'+
+         '<span style="color:#000000;font-size:'+sgn+'pt;font-weight:600">Planned&nbsp;-&nbsp;</span>'+
+         '<span style="color:#000000">'+p.toFixed(1)+'<span style="font-size:'+sgn+'pt">%</span></span>';
+}
 function pageExec(pgm,n){
   var k=S.kpi, h=head(pgm,n);
   var lpg=hasLPG()?trade("LPG"):null, subs=subTrades().slice(0,4);
@@ -1928,14 +2092,14 @@ function pageExec(pgm,n){
   var mw=lpg?8.5:12.13;
   h+=CARD(0.6,1.55,mw,1.95);
   h+=TX("MEP COMPLETION",{x:0.6,y:1.70,w:mw,h:0.28,f:"B",size:12,bold:true,color:C.terra,spacing:2,align:"center"});
-  h+=TX(mepActual().toFixed(1)+"%",{x:0.6,y:1.96,w:mw,h:0.92,f:"H",size:52,bold:true,color:C.teal,align:"center",valign:"middle"});
+  h+=TX(actualPlanRaw(mepActual(),num(k.planned),44),{x:0.6,y:1.96,w:mw,h:0.92,f:"H",size:44,bold:true,align:"center",valign:"middle",raw:true});
   var sub=hasBaseline()
     ? ("Baseline required "+num(k.planned).toFixed(1)+"%   ·   "+(num(variance())>=0?"ahead by ":"behind by ")+
        Math.abs(num(variance())).toFixed(1)+"%")
     : (num(k.weekly)?("+"+num(k.weekly)+"% this week"):"");
   h+=TX(sub,{x:0.6,y:2.88,w:mw,h:0.26,f:"B",size:11.5,bold:true,
         color:hasBaseline()?(num(variance())>=0?C.green:C.red):C.slate,align:"center"});
-  h+=TX("Dry cost "+cur()+" "+money(tradesCost())+"   ·   installation "+cur()+" "+money(tradesCost("inst"))+
+  if(S.showDryCost!==false)h+=TX("Dry cost "+cur()+" "+money(tradesCost())+"   ·   installation "+cur()+" "+money(tradesCost("inst"))+
         "   ·   materials "+cur()+" "+money(tradesCost("mat")),
         {x:0.6,y:3.14,w:mw,h:0.26,f:"B",size:10,color:C.muted,align:"center"});
 
@@ -1944,21 +2108,24 @@ function pageExec(pgm,n){
     h+=TX("LPG COMPLETION",{x:9.3,y:1.70,w:3.43,h:0.28,f:"B",size:12,bold:true,color:C.terra,spacing:2,align:"center"});
     h+=TX(num(lpg.pct).toFixed(1)+"%",{x:9.3,y:1.96,w:3.43,h:0.92,f:"H",size:44,bold:true,color:C.gold,align:"center",valign:"middle"});
     h+=TX(lpg.move?(lpg.move+"% this week"):"",{x:9.3,y:2.88,w:3.43,h:0.26,f:"B",size:11.5,color:C.slate,align:"center"});
-    h+=TX("Dry cost "+cur()+" "+money(tradeTotal(lpg)),{x:9.3,y:3.14,w:3.43,h:0.26,f:"B",size:10,color:C.muted,align:"center"});
+    if(S.showDryCost!==false)h+=TX("Dry cost "+cur()+" "+money(tradeTotal(lpg)),{x:9.3,y:3.14,w:3.43,h:0.26,f:"B",size:10,color:C.muted,align:"center"});
   }
 
   /* one card per discipline, with its dry cost split */
   var n2=Math.max(subs.length,1), gap=0.2, cw=(12.13-(n2-1)*gap)/n2;
+  var showDC=S.showDryCost!==false, cardH=showDC?2.52:1.64;
   subs.forEach(function(t,i){
     var x=0.6+i*(cw+gap), pad=0.22, iw=cw-pad*2;
-    h+=CARD(x,3.70,cw,2.18,C.white);
-    h+=TX(String(t.name).toUpperCase(),{x:x,y:3.86,w:cw,h:0.28,f:"B",size:11,bold:true,color:C.slate,spacing:1.4,align:"center"});
-    h+=TX(num(t.pct).toFixed(1)+"%",{x:x,y:4.12,w:cw,h:0.70,f:"H",size:34,bold:true,color:C.chart,align:"center",valign:"middle"});
-    h+=TX(t.move?(t.move+"% this week"):"",{x:x,y:4.82,w:cw,h:0.24,f:"B",size:10,color:C.muted,align:"center"});
-    h+=RECT(x+pad,5.12,iw,0.008,C.sandd);
-    h+=execRow(TXp,x+pad,5.18,iw,"Installation",cur()+" "+money(num(t.inst)));
-    h+=execRow(TXp,x+pad,5.40,iw,"Materials",cur()+" "+money(num(t.mat)));
-    h+=execRow(TXp,x+pad,5.62,iw,"Dry cost total",cur()+" "+money(tradeTotal(t)),true);
+    h+=CARD(x,3.70,cw,cardH,C.white);
+    h+=TX(String(t.name).toUpperCase(),{x:x,y:3.86,w:cw,h:0.24,f:"B",size:11,bold:true,color:C.slate,spacing:1.4,align:"center"});
+    h+=actualPlanTwoLine(num(t.pct),num(t.plan),x,cw,4.10,4.44,24);
+    h+=TX(t.move?(t.move+"% this week"):"",{x:x,y:4.80,w:cw,h:0.20,f:"B",size:10,color:C.muted,align:"center"});
+    if(showDC){
+      h+=RECT(x+pad,5.02,iw,0.008,C.sandd);
+      h+=execRow(TXp,x+pad,5.08,iw,"Installation",cur()+" "+money(num(t.inst)));
+      h+=execRow(TXp,x+pad,5.30,iw,"Materials",cur()+" "+money(num(t.mat)));
+      h+=execRow(TXp,x+pad,5.52,iw,"Dry cost total",cur()+" "+money(tradeTotal(t)),true);
+    }
   });
   return shell(h+foot());
 }
@@ -2000,7 +2167,7 @@ function stagesGeom(){
       tall=Math.max(tall,hgt);
       if(hgt>0)g.bars.push({x:x,y:yB-hgt,w:bwid,h:hgt,fill:sr[1]});
       g.texts.push({x:x-0.16,y:yB-hgt-0.20,w:bwid+0.32,h:0.19,text:sr[0].toFixed(1)+"%",
-                    align:"center",size:8.5,bold:true,color:sr[0]?sr[1]:C.muted});
+                    align:"center",size:8.5,bold:true,color:j===0?"000000":sr[1]});
     });
     var d=ac-pl, lw=Math.min(1.4,gw*1.4);
     g.texts.push({x:cx-lw/2,y:yB-tall-0.40,w:lw,h:0.20,text:(d>=0?"+":"")+d.toFixed(1)+"%",
@@ -2039,31 +2206,36 @@ function pageIpt(pgm,n,part){
   part=part||0;
   var chunks=iptChunks(), chunk=chunks[part]||[], last=(part===chunks.length-1);
   var h=head(partTitle(pgm,part,chunks.length),n);
-  var head6=["Activity","TH","Villas","Planned %","Actual %","Value ("+cur()+")","Weightage %","Remarks"];
+  var head6=["Activity","TH","Villas","Planned %","Planned Value","Actual %","Actual Value","Weightage %","Remarks"];
   var rows=[head6.map(function(c){return {text:c,fill:C.teal,color:C.white,bold:true,size:10};})];
   chunk.forEach(function(e,ri){
     if(e.sec){
-      rows.push([{text:"EXTRA IPTs — activities outside the planned IPT",span:8,fill:C.sandd,color:C.teal,bold:true,size:9.5},
-                 {skip:true},{skip:true},{skip:true},{skip:true},{skip:true},{skip:true},{skip:true}]);
+      rows.push([{text:"EXTRA IPTs — activities outside the planned IPT",span:9,fill:C.sandd,color:C.teal,bold:true,size:9.5},
+                 {skip:true},{skip:true},{skip:true},{skip:true},{skip:true},{skip:true},{skip:true},{skip:true}]);
       return;
     }
     var r=e.r, bg=ri%2===0?C.white:C.sand;
     if(e.sub){
-      var x=e.sub;
-      rows.push([{text:"",fill:bg},{text:x.th||"",fill:bg,color:C.slate,size:9,align:"center"},
+      var x=e.sub, xp=r.extra?(iptCost()?(num(x.avalue)/iptCost()*100):0):num(x.pct);
+      rows.push([{text:x.th||"",fill:bg,color:C.slate,size:9,align:"center"},
         {text:String(num(x.villas)),fill:bg,color:C.slate,size:9,align:"center"},
-        {text:"",fill:bg},{text:num(x.pct)+"%",fill:bg,color:C.terra,size:9,align:"center"},
-        {text:money(num(x.value)),fill:bg,color:C.slate,size:9,align:"center"},
+        {text:"",fill:bg},{text:r.extra?"—":money(subPlanned(x)),fill:bg,color:"000000",size:9,align:"center"},
+        {text:xp.toFixed(2)+"%",fill:bg,color:C.terra,size:9,align:"center"},
+        {text:money(subAVal(x)),fill:bg,color:"000000",size:9,align:"center"},
         {text:"",fill:bg},{text:x.remarks||"",fill:bg,color:C.slate,size:9}]);
       return;
     }
-    rows.push([r.activity,rowTH(r),String(rowVillas(r)),num(r.plan)+"%",rowPct(r).toFixed(0)+"%",money(rowValue(r)),
+    var span=1+(subs(r)?subs(r).length:0);
+    rows.push([{text:r.activity,fill:bg,color:C.teal,bold:true,size:9.5,vspan:span},
+               rowTH(r),String(rowVillas(r)),num(r.plan)+"%",money(rowPlanned(r)),rowPct(r).toFixed(0)+"%",
+               money(Math.round(rowEarned(r))),
                (weightOf(r).toFixed(2)+"%"+(r.extra?" *":"")),r.remarks].map(function(c,ci){
+      if(ci===0)return c;
       return {text:c,fill:bg,
-              color:ci===0?C.teal:(ci===4?C.terra:(ci===6?(r.extra?C.gold:C.chart):C.teal2)),
-              bold:ci===0||ci===4||ci===6,size:9.5,align:(ci>=2&&ci<=6)?"center":"left"};}));
+              color:(ci===4||ci===6)?"000000":(ci===5?C.terra:(ci===7?(r.extra?C.gold:C.chart):C.teal2)),
+              bold:ci===5||ci===7,size:9.5,align:(ci>=1&&ci<=6)?"center":"left"};}));
   });
-  h+=TBL({x:0.6,y:1.62,w:12.13,colW:[2.9,1.1,0.7,0.95,0.95,1.25,1.05,3.23],
+  h+=TBL({x:0.6,y:1.62,w:12.13,colW:[2.55,1.0,0.65,0.85,1.15,0.75,1.15,1.0,2.03],
           rowH:0.295,rows:rows,size:9.5,pad:[3,8]});
   if(last)h+=TX(earnedLine(),{x:0.6,y:6.42,w:12.13,h:0.30,f:"B",size:12,bold:true,color:C.terra});
   else h+=TX("Continued on the next page",{x:0.6,y:6.42,w:12.13,h:0.30,f:"B",size:11,italic:true,color:C.slate});
@@ -2114,7 +2286,7 @@ function pageRes(pgm,n){
    ["Total actual cost",cur()+" "+money(ta),C.terra],
    ["Spent against plan",(tp?(ta/tp*100).toFixed(1):"0.0")+"%",C.teal],
    [(cv>=0?"Variance — under plan":"Variance — over plan"),cur()+" "+money(Math.abs(cv)),cv>=0?C.green:C.red],
-   ["Average manpower cost / day"+(dy?("  ("+dy+" days)"):""),dy?(cur()+" "+money(avgPerDay(ta))):"set total days",
+   ["Average manpower cost / day"+(dy?("  ("+dy+" days)"):""),dy?(cur()+" "+money(avgPerDay())):"set total days",
     dy?C.gold:C.muted]];
   var gm=statGeom(cards.length);
   cards.forEach(function(r,i){
@@ -2301,7 +2473,8 @@ function iptChartGeom(part){
       var own=Math.max(0,Math.min(100,sr[0]==="pct"?rowPct(r):num(r.plan)));
       var hgt=plot*((Wt*own/100)/top), x=cx-bwid-gap/2+j*(bwid+gap);
       if(hgt>0)g.bars.push({x:x,y:yB-hgt,w:bwid,h:hgt,fill:sr[1]});
-      g.texts.push({x:x-0.16,y:yB-hgt-0.20,w:bwid+0.32,h:0.19,text:own+"%",
+      g.texts.push({x:x-0.16,y:yB-hgt-0.20,w:bwid+0.32,h:0.19,
+                    text:(Math.round(own*10)/10)+"%",
                     align:"center",size:8,bold:true,color:sr[1]});
       if(!anchor||hgt>anchor.h)anchor={x:x,h:hgt};
     });
@@ -2456,17 +2629,30 @@ async function buildPptx(){
     var k=S.kpi, lpg=hasLPG()?trade("LPG"):null, subs=subTrades().slice(0,4);
     function T2(t,o){s.addText(t,{isTextBox:true,x:o.x,y:o.y,w:o.w,h:o.h,fontFace:"Calibri",fontSize:o.size,
       bold:!!o.bold,color:o.color,align:o.align||"left",charSpacing:o.spacing||0,margin:0,valign:"middle"});return "";}
+    function actualPlanRuns(a,pl,size){
+      var col1=nearBaselineColour(a,pl), sgn=Math.round(size*0.55);
+      return [
+        {text:"Actual - ",options:{color:col1,bold:true,fontFace:"Calibri",fontSize:sgn}},
+        {text:a.toFixed(1),options:{color:col1,bold:true,fontFace:"Cambria",fontSize:size}},
+        {text:"%",options:{color:col1,bold:true,fontFace:"Cambria",fontSize:sgn}},
+        {text:"  /  ",options:{color:C.muted,bold:false,fontFace:"Cambria",fontSize:sgn}},
+        {text:"Planned - ",options:{color:"000000",bold:true,fontFace:"Calibri",fontSize:sgn}},
+        {text:pl.toFixed(1),options:{color:"000000",bold:true,fontFace:"Cambria",fontSize:size}},
+        {text:"%",options:{color:"000000",bold:true,fontFace:"Cambria",fontSize:sgn}}
+      ];
+    }
     var mw=lpg?8.5:12.13;
     card(s,0.6,1.55,mw,1.95);
     T2("MEP COMPLETION",{x:0.6,y:1.70,w:mw,h:0.28,size:12,bold:true,color:C.terra,spacing:2,align:"center"});
-    s.addText(mepActual().toFixed(1)+"%",{isTextBox:true,x:0.6,y:1.96,w:mw,h:0.92,fontFace:"Cambria",fontSize:52,bold:true,color:C.teal,align:"center",valign:"middle",margin:0});
+    s.addText(actualPlanRuns(mepActual(),num(k.planned),44),
+      {isTextBox:true,x:0.6,y:1.96,w:mw,h:0.92,align:"center",valign:"middle",margin:0});
     var sub=hasBaseline()
       ? ("Baseline required "+num(k.planned).toFixed(1)+"%   ·   "+(num(variance())>=0?"ahead by ":"behind by ")+
          Math.abs(num(variance())).toFixed(1)+"%")
       : (num(k.weekly)?("+"+num(k.weekly)+"% this week"):"");
     T2(sub,{x:0.6,y:2.88,w:mw,h:0.26,size:11.5,bold:true,
       color:hasBaseline()?(num(variance())>=0?C.green:C.red):C.slate,align:"center"});
-    T2("Dry cost "+cur()+" "+money(tradesCost())+"   ·   installation "+cur()+" "+money(tradesCost("inst"))+
+    if(S.showDryCost!==false)T2("Dry cost "+cur()+" "+money(tradesCost())+"   ·   installation "+cur()+" "+money(tradesCost("inst"))+
        "   ·   materials "+cur()+" "+money(tradesCost("mat")),
        {x:0.6,y:3.14,w:mw,h:0.26,size:10,color:C.muted,align:"center"});
 
@@ -2475,24 +2661,36 @@ async function buildPptx(){
       T2("LPG COMPLETION",{x:9.3,y:1.70,w:3.43,h:0.28,size:12,bold:true,color:C.terra,spacing:2,align:"center"});
       s.addText(num(lpg.pct).toFixed(1)+"%",{isTextBox:true,x:9.3,y:1.96,w:3.43,h:0.92,fontFace:"Cambria",fontSize:44,bold:true,color:C.gold,align:"center",valign:"middle",margin:0});
       T2(lpg.move?(lpg.move+"% this week"):"",{x:9.3,y:2.88,w:3.43,h:0.26,size:11.5,color:C.slate,align:"center"});
-      T2("Dry cost "+cur()+" "+money(tradeTotal(lpg)),{x:9.3,y:3.14,w:3.43,h:0.26,size:10,color:C.muted,align:"center"});
+      if(S.showDryCost!==false)T2("Dry cost "+cur()+" "+money(tradeTotal(lpg)),{x:9.3,y:3.14,w:3.43,h:0.26,size:10,color:C.muted,align:"center"});
     }
 
+    function actualPlanRunsLine(val,label,size,col){
+      var lbl=Math.round(size*0.42);
+      return [{text:label+" - ",options:{color:col,bold:true,fontFace:"Calibri",fontSize:lbl}},
+              {text:val.toFixed(1),options:{color:col,bold:true,fontFace:"Cambria",fontSize:size}},
+              {text:"%",options:{color:col,bold:true,fontFace:"Cambria",fontSize:lbl}}];
+    }
     var n2=Math.max(subs.length,1), gap=0.2, cw=(12.13-(n2-1)*gap)/n2;
+    var showDC=S.showDryCost!==false, cardH=showDC?2.52:1.64;
     subs.forEach(function(t,i){
-      var x=0.6+i*(cw+gap), pad=0.22, iw=cw-pad*2;
-      card(s,x,3.70,cw,2.18,C.white);
-      T2(String(t.name).toUpperCase(),{x:x,y:3.86,w:cw,h:0.28,size:11,bold:true,color:C.slate,spacing:1.4,align:"center"});
-      s.addText(num(t.pct).toFixed(1)+"%",{isTextBox:true,x:x,y:4.12,w:cw,h:0.70,fontFace:"Cambria",fontSize:34,bold:true,color:C.chart,align:"center",valign:"middle",margin:0});
-      T2(t.move?(t.move+"% this week"):"",{x:x,y:4.82,w:cw,h:0.24,size:10,color:C.muted,align:"center"});
-      s.addShape(p.ShapeType.rect,{x:x+pad,y:5.12,w:iw,h:0.008,fill:{color:C.sandd},line:{color:C.sandd,width:0}});
-      [["Installation",cur()+" "+money(num(t.inst)),false],
-       ["Materials",cur()+" "+money(num(t.mat)),false],
-       ["Dry cost total",cur()+" "+money(tradeTotal(t)),true]].forEach(function(r,j){
-        var y=5.18+j*0.22;
-        T2(r[0],{x:x+pad,y:y,w:iw*0.52,h:0.24,size:9.5,color:C.slate,bold:r[2]});
-        T2(r[1],{x:x+pad+iw*0.48,y:y,w:iw*0.52,h:0.24,size:9.5,color:r[2]?C.teal:C.teal2,bold:r[2],align:"right"});
-      });
+      var x=0.6+i*(cw+gap), pad=0.22, iw=cw-pad*2, col1=nearBaselineColour(num(t.pct),num(t.plan));
+      card(s,x,3.70,cw,cardH,C.white);
+      T2(String(t.name).toUpperCase(),{x:x,y:3.86,w:cw,h:0.24,size:11,bold:true,color:C.slate,spacing:1.4,align:"center"});
+      s.addText(actualPlanRunsLine(num(t.pct),"Actual",24,col1),
+        {isTextBox:true,x:x,y:4.10,w:cw,h:0.34,align:"center",valign:"middle",margin:0});
+      s.addText(actualPlanRunsLine(num(t.plan),"Planned",24,"000000"),
+        {isTextBox:true,x:x,y:4.44,w:cw,h:0.34,align:"center",valign:"middle",margin:0});
+      T2(t.move?(t.move+"% this week"):"",{x:x,y:4.80,w:cw,h:0.20,size:10,color:C.muted,align:"center"});
+      if(showDC){
+        s.addShape(p.ShapeType.rect,{x:x+pad,y:5.02,w:iw,h:0.008,fill:{color:C.sandd},line:{color:C.sandd,width:0}});
+        [["Installation",cur()+" "+money(num(t.inst)),false],
+         ["Materials",cur()+" "+money(num(t.mat)),false],
+         ["Dry cost total",cur()+" "+money(tradeTotal(t)),true]].forEach(function(r,j){
+          var y=5.08+j*0.22;
+          T2(r[0],{x:x+pad,y:y,w:iw*0.52,h:0.24,size:9.5,color:C.slate,bold:r[2]});
+          T2(r[1],{x:x+pad+iw*0.48,y:y,w:iw*0.52,h:0.24,size:9.5,color:r[2]?C.teal:C.teal2,bold:r[2],align:"right"});
+        });
+      }
     });
     ftr(s);
   };
@@ -2521,35 +2719,41 @@ async function buildPptx(){
   PPT.ipt=function(s,pgm,n,part){
     part=part||0;
     var chunks=iptChunks(), chunk=chunks[part]||[], last=(part===chunks.length-1);
-    var head6=["Activity","TH","Villas","Planned %","Actual %","Value ("+cur()+")","Weightage %","Remarks"].map(function(c){
+    var head6=["Activity","TH","Villas","Planned %","Planned Value","Actual %","Actual Value","Weightage %","Remarks"].map(function(c){
       return {text:c,options:{fill:{color:C.teal},color:C.white,bold:true,fontSize:10,fontFace:"Calibri",valign:"middle"}};});
     var rows6=[];
     chunk.forEach(function(e,ri){
       if(e.sec){
         rows6.push([{text:"EXTRA IPTs — activities outside the planned IPT",
-          options:{colspan:8,fill:{color:C.sandd},color:C.teal,bold:true,fontSize:9.5,fontFace:"Calibri",valign:"middle"}}]);
+          options:{colspan:9,fill:{color:C.sandd},color:C.teal,bold:true,fontSize:9.5,fontFace:"Calibri",valign:"middle"}}]);
         return;
       }
       var r=e.r, bg=ri%2===0?C.white:C.sand;
       function cell(t,col,sz,bd,al){return {text:t,options:{fill:{color:bg},color:col,bold:!!bd,
         fontSize:sz,fontFace:"Calibri",align:al||"left",valign:"middle"}};}
       if(e.sub){
-        var x=e.sub;
-        rows6.push([cell("",C.teal2,9),cell(x.th||"",C.slate,9,false,"center"),
+        var x=e.sub, xp=r.extra?(iptCost()?(num(x.avalue)/iptCost()*100):0):num(x.pct);
+        rows6.push([cell(x.th||"",C.slate,9,false,"center"),
           cell(String(num(x.villas)),C.slate,9,false,"center"),cell("",C.teal2,9),
-          cell(num(x.pct)+"%",C.terra,9,false,"center"),cell(money(num(x.value)),C.slate,9,false,"center"),
+          cell(r.extra?"—":money(subPlanned(x)),"000000",9,false,"center"),cell(xp.toFixed(2)+"%",C.terra,9,false,"center"),
+          cell(money(subAVal(x)),"000000",9,false,"center"),
           cell("",C.teal2,9),cell(x.remarks||"",C.slate,9)]);
         return;
       }
-      rows6.push([r.activity,rowTH(r),String(rowVillas(r)),num(r.plan)+"%",rowPct(r).toFixed(0)+"%",money(rowValue(r)),
+      var span=1+(subs(r)?subs(r).length:0);
+      var actCell={text:r.activity,options:{fill:{color:bg},color:C.teal,bold:true,
+        fontSize:9.5,fontFace:"Calibri",align:"left",valign:"middle",rowspan:span}};
+      rows6.push([actCell,rowTH(r),String(rowVillas(r)),num(r.plan)+"%",money(rowPlanned(r)),rowPct(r).toFixed(0)+"%",
+                  money(Math.round(rowEarned(r))),
                   (weightOf(r).toFixed(2)+"%"+(r.extra?" *":"")),r.remarks].map(function(c,ci){
+        if(ci===0)return c;
         return {text:c,options:{fill:{color:bg},
-          color:ci===0?C.teal:(ci===4?C.terra:(ci===6?(r.extra?C.gold:C.chart):C.teal2)),
-          bold:ci===0||ci===4||ci===6,fontSize:9.5,fontFace:"Calibri",
-          align:(ci>=2&&ci<=6)?"center":"left",valign:"middle"}};}));
+          color:(ci===4||ci===6)?"000000":(ci===5?C.terra:(ci===7?(r.extra?C.gold:C.chart):C.teal2)),
+          bold:ci===5||ci===7,fontSize:9.5,fontFace:"Calibri",
+          align:(ci>=1&&ci<=6)?"center":"left",valign:"middle"}};}));
     });
     s.addTable([head6].concat(rows6),{x:0.6,y:1.62,w:12.13,
-      colW:[2.9,1.1,0.7,0.95,0.95,1.25,1.05,3.23],rowH:0.295,
+      colW:[2.55,1.0,0.65,0.85,1.15,0.75,1.15,1.0,2.03],rowH:0.295,
       border:{type:"solid",color:C.sandd,pt:1},margin:[3,8,3,8]});
     if(last)s.addText(earnedLine(),{isTextBox:true,x:0.6,y:6.42,w:12.13,h:0.30,fontFace:"Calibri",fontSize:12,bold:true,color:C.terra,margin:0});
     else s.addText("Continued on the next page",{isTextBox:true,x:0.6,y:6.42,w:12.13,h:0.30,fontFace:"Calibri",fontSize:11,italic:true,color:C.slate,margin:0});
@@ -2600,7 +2804,7 @@ async function buildPptx(){
      ["Total actual cost",cur()+" "+money(ta),C.terra],
      ["Spent against plan",(tp?(ta/tp*100).toFixed(1):"0.0")+"%",C.teal],
      [(cv>=0?"Variance — under plan":"Variance — over plan"),cur()+" "+money(Math.abs(cv)),cv>=0?C.green:C.red],
-     ["Average manpower cost / day"+(dy?("  ("+dy+" days)"):""),dy?(cur()+" "+money(avgPerDay(ta))):"set total days",
+     ["Average manpower cost / day"+(dy?("  ("+dy+" days)"):""),dy?(cur()+" "+money(avgPerDay())):"set total days",
       dy?C.gold:C.muted]];
     var gm=statGeom(cards.length);
     cards.forEach(function(r,i){
@@ -2736,18 +2940,19 @@ async function exportPdf(){
   catch(e){ chip(); toast("Could not load the PDF libraries — check your internet connection and reload."); return; }
   var host=document.createElement("div");
   host.style.cssText="position:fixed;left:-99999px;top:0";
-  var n=0;
-  var out=[];
-  activePages().forEach(function(pgm){
-    var f=PREVIEW[pgm.type]||pageText, parts=pagesOf(pgm);
-    for(var i=0;i<parts;i++){
-      if(numbered(pgm.type))n++;
-      out.push(f(pgm,numbered(pgm.type)?n:0,i));
-    }
-  });
-  host.innerHTML=out.join("");
-  document.body.appendChild(host);
   try{
+    var n=0, out=[], failed=[];
+    activePages().forEach(function(pgm){
+      var f=PREVIEW[pgm.type]||pageText, parts=pagesOf(pgm);
+      for(var i=0;i<parts;i++){
+        if(numbered(pgm.type))n++;
+        try{ out.push(f(pgm,numbered(pgm.type)?n:0,i)); }
+        catch(pe){ failed.push(pgm.name||pgm.type); out.push('<div class="page"></div>'); }
+      }
+    });
+    if(failed.length)toast("Skipped a broken page: "+failed.join(", "));
+    host.innerHTML=out.join("");
+    document.body.appendChild(host);
     var jsPDF=window.jspdf.jsPDF;
     var pdf=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
     var nodes=host.querySelectorAll(".page");
@@ -2776,7 +2981,8 @@ var SHEETS=[
   ["IPT",       function(){return S.ipt;},             function(r){S.ipt=r.map(function(x){var ex=(x.extra===true||String(x.extra).toLowerCase()==="true"||String(x.extra).toLowerCase()==="extra");
                   return{activity:x.activity,th:x.th,villas:num(x.villas),plan:ex?0:num(x.plan),pct:num(x.pct),value:num(x.value),extra:ex,remarks:x.remarks};});}],
   ["Materials", function(){return S.materials;},       function(r){S.materials=r.map(function(x){return{item:x.item,budget:num(x.budget),spent:num(x.spent),comment:x.comment||""};});}],
-  ["Costs",     function(){return S.costs;},           function(r){S.costs=r.map(function(x){return{party:x.party,planned:num(x.planned),actual:num(x.actual),comment:x.comment||""};});}],
+  ["Costs",     function(){return S.costs;},           function(r){S.costs=r.map(function(x){return{party:x.party,planned:num(x.planned),actual:num(x.actual),
+                  daily:!(String(x.daily).toLowerCase()==="false"),comment:x.comment||""};});}],
   ["Concerns",  function(){return S.concerns;},        function(r){S.concerns=r;}],
   ["Procurement",function(){return S.procurement;},    function(r){S.procurement=r;}],
   ["LookAhead", function(){return S.lookahead;},       function(r){S.lookahead=r;}],
