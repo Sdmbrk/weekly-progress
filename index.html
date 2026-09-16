@@ -619,20 +619,21 @@ function defaults(){return{
 var S = defaults();
 
 var PAGE_TYPES=[
-  {type:"cover", name:"Cover"},
-  {type:"exec",  name:"Executive summary"},
-  {type:"stages",name:"MEP stage mix"},
-  {type:"ipt",   name:"IPT progress"},
-  {type:"iptchart",name:"IPT planned vs actual"},
-  {type:"res",   name:"Manpower cost"},
-  {type:"material",name:"Material cost"},
-  {type:"risk",  name:"Areas of concern"},
-  {type:"proc",  name:"Procurement"},
-  {type:"look",  name:"Look ahead"},
-  {type:"close", name:"Closing summary"},
-  {type:"text",  name:"Free text page"}
+  {type:"cover",   name:"Cover",                 eyebrow:"",                     title:"Cover"},
+  {type:"exec",    name:"Executive summary",      eyebrow:"Executive summary",    title:"Project cumulative status : {mon}-{year} W{week}"},
+  {type:"stages",  name:"MEP stage mix",          eyebrow:"Main work categories", title:"MEP cumulative Progress : {mon}-{year} W{week}"},
+  {type:"ipt",     name:"IPT progress",           eyebrow:"Activities completed", title:"IPT Progress : {mon}-{year} W{week}"},
+  {type:"iptchart",name:"IPT planned vs actual",  eyebrow:"IPT progress",         title:"IPT - Planned vs Actual"},
+  {type:"res",     name:"Manpower cost",          eyebrow:"Manpower cost",        title:"MEP manpower {mon}-{year} IPT — Week {week}"},
+  {type:"material",name:"Material cost",          eyebrow:"Material cost",        title:"Material Budget {mon}-{year} IPT — Week {week}"},
+  {type:"risk",    name:"Areas of concern",       eyebrow:"Areas of concern",     title:"Issues and actions"},
+  {type:"proc",    name:"Procurement",            eyebrow:"Procurement",          title:"Procurement status"},
+  {type:"look",    name:"Look ahead",             eyebrow:"Look ahead",           title:"Look ahead — next 4 weeks"},
+  {type:"close",   name:"Closing summary",        eyebrow:"Closing summary",      title:"Summary and next steps"},
+  {type:"text",    name:"Free text page",         eyebrow:"",                     title:""}
 ];
 function typeName(t){var m=PAGE_TYPES.filter(function(x){return x.type===t;})[0];return m?m.name:t;}
+function defaultLabels(type){var t=PAGE_TYPES.filter(function(x){return x.type===type;})[0];return t?{eyebrow:t.eyebrow,title:t.title}:{eyebrow:"",title:""};} 
 function newKey(){return "p"+Date.now().toString(36)+Math.floor(Math.random()*900+100);}
 function numbered(t){return t!=="cover"&&t!=="close";}
 function activePages(){return (S.pages||[]).filter(function(x){return x.on!==false;});}
@@ -1617,7 +1618,8 @@ function renderEditor(){
          '<div class="grid">'+
          '<div><label class="f">Small label on the page</label><input type="text" data-pk="eyebrow" data-pi="'+i+'" value="'+esc(pgm.eyebrow)+'"></div>'+
          '<div><label class="f">Heading on the page</label><input type="text" data-pk="title" data-pi="'+i+'" value="'+esc(pgm.title)+'"></div>'+
-         '</div>';
+         '</div>'+
+         '<div class="rowbtns" style="margin-top:6px"><button class="sbtn resetlabels" data-ri="'+i+'" title="Restore default label & heading for this page type">↺ Reset to default labels</button></div>';
       if(pgm.type==="text"){
         h+='<label class="f" style="margin-top:12px">Page text</label>'+
            '<textarea data-pk="body" data-pi="'+i+'" placeholder="Leave a blank line between paragraphs.">'+esc(pgm.body||"")+'</textarea>';
@@ -1720,6 +1722,13 @@ function renderEditor(){
     });
     w.querySelectorAll("[data-delp]").forEach(function(b){
       b.onclick=function(){S.pages.splice(+b.dataset.delp,1);save();buildNav();renderEditor();};
+    });
+    w.querySelectorAll(".resetlabels").forEach(function(b){
+      b.onclick=function(){
+        var i=+b.dataset.ri, pg=S.pages[i], dfl=defaultLabels(pg.type);
+        pg.eyebrow=dfl.eyebrow; pg.title=dfl.title;
+        save(); renderEditor();
+      };
     });
     var ap=document.getElementById("addPage");
     if(ap)ap.onclick=function(){
