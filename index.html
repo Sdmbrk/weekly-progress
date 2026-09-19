@@ -1402,9 +1402,6 @@ function renderEditor(){
         {label:"Baseline %",key:"plan",type:"number",step:"0.1",w:"100px"},
         {label:"Complete %",key:"pct",type:"number",step:"0.1",w:"110px"},
         {label:"Weekly movement (%)",key:"move",w:"140px"},
-        {label:"Installation ("+cur()+")",key:"inst",type:"number",w:"150px"},
-        {label:"Materials ("+cur()+")",key:"mat",type:"number",w:"150px"},
-        {label:"Dry cost total",type:"calc",w:"140px",calc:function(t){return cur()+" "+money(tradeTotal(t));}},
         {label:"Note",key:"note"}
       ])+'<div class="rowbtns" id="bTrades"><span class="tot">'+(S.trades||[]).length+' disciplines · MEP average '+
       mepFromTrades().toFixed(1)+'% · dry cost '+cur()+' '+money(tradesCost())+'</span></div>'+
@@ -1430,15 +1427,15 @@ function renderEditor(){
     h+='<p class="hint">Enter your contract dry costs and actual costs here. Leave any field blank to auto-fill from Disciplines / Manpower / Material sections.</p>';
 
     /* ── Dry Cost card ─────────────────────────────────────────── */
-    h+='<div class="card"><h3 style="color:var(--teal2)">Dry Cost (Contract Estimate)</h3>';
+    h+='<div class="card"><h3 style="color:var(--teal2);font-size:17px;font-weight:700">Dry Cost (Contract Estimate)</h3>';
     h+='<div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">';
     h+='<div>';
     h+='<label class="f">Installation Dry Cost ('+_c+')</label>';
-    h+='<input type="number" step="0.01" data-o data-k="dcInst" value="'+esc(S.dcInst||'')+'" placeholder="Enter amount">';
+    h+='<input type="text" inputmode="numeric" data-o data-k="dcInst" value="'+esc(S.dcInst||'')+'" placeholder="Enter amount">';
     h+='</div>';
     h+='<div>';
     h+='<label class="f">Material Dry Cost ('+_c+')</label>';
-    h+='<input type="number" step="0.01" data-o data-k="dcMat" value="'+esc(S.dcMat||'')+'" placeholder="Enter amount">';
+    h+='<input type="text" inputmode="numeric" data-o data-k="dcMat" value="'+esc(S.dcMat||'')+'" placeholder="Enter amount">';
     h+='</div>';
     h+='</div>';
     if(_dciFin||_dcmFin){
@@ -1450,15 +1447,15 @@ function renderEditor(){
     h+='</div>';
 
     /* ── Actual Cost card ──────────────────────────────────────── */
-    h+='<div class="card"><h3 style="color:var(--terra)">Actual Cost (To Date)</h3>';
+    h+='<div class="card"><h3 style="color:var(--terra);font-size:17px;font-weight:700">Actual Cost (To Date)</h3>';
     h+='<div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">';
     h+='<div>';
     h+='<label class="f">Actual Installation Cost ('+_c+')</label>';
-    h+='<input type="number" step="0.01" data-o data-k="acInst" value="'+esc(S.acInst||'')+'" placeholder="Enter amount">';
+    h+='<input type="text" inputmode="numeric" data-o data-k="acInst" value="'+esc(S.acInst||'')+'" placeholder="Enter amount">';
     h+='</div>';
     h+='<div>';
     h+='<label class="f">Actual Material Cost ('+_c+')</label>';
-    h+='<input type="number" step="0.01" data-o data-k="acMat" value="'+esc(S.acMat||'')+'" placeholder="Enter amount">';
+    h+='<input type="text" inputmode="numeric" data-o data-k="acMat" value="'+esc(S.acMat||'')+'" placeholder="Enter amount">';
     h+='</div>';
     h+='</div>';
     if(_aciFin||_acmFin){
@@ -1471,11 +1468,11 @@ function renderEditor(){
 
     /* ── Live summary table ────────────────────────────────────── */
     h+='<div class="card"><h3>Cost Summary Preview</h3>';
-    h+='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#12414E;color:#fff">';
-    h+='<th style="padding:10px 14px;text-align:left">Cost Head</th>';
-    h+='<th style="padding:10px 14px;text-align:right">Actual Cost</th>';
-    h+='<th style="padding:10px 14px;text-align:center">% Used</th>';
-    h+='<th style="padding:10px 14px;text-align:right">Dry Cost</th>';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="background:#12414E;color:#fff">';
+    h+='<th style="padding:14px 16px;text-align:left;font-size:13px;font-weight:700;letter-spacing:.5px">COST HEAD</th>';
+    h+='<th style="padding:14px 16px;text-align:right;font-size:13px;font-weight:700;letter-spacing:.5px">ACTUAL</th>';
+    h+='<th style="padding:14px 16px;text-align:center;font-size:13px;font-weight:700;letter-spacing:.5px">%</th>';
+    h+='<th style="padding:14px 16px;text-align:right;font-size:13px;font-weight:700;letter-spacing:.5px">DRY COST</th>';
     h+='</tr></thead><tbody>';
     var _rows2=[
       {label:"Installation",act:_aciFin,pct:_piI,dry:_dciFin},
@@ -1484,18 +1481,18 @@ function renderEditor(){
     _rows2.forEach(function(r,i){
       var pillC=r.pct>=95?"#2E8B6F":"#CB5F33";
       h+='<tr style="background:'+(i%2===0?"#F0F5F5":"#fff")+'">';
-      h+='<td style="padding:10px 14px;font-weight:700;color:#12414E">'+r.label+'</td>';
-      h+='<td style="padding:10px 14px;text-align:right;font-weight:700">'+_c+' '+money(r.act)+'</td>';
-      h+='<td style="padding:10px 14px;text-align:center"><span style="background:'+pillC+';color:#fff;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700">'+r.pct.toFixed(1)+'%</span></td>';
-      h+='<td style="padding:10px 14px;text-align:right;color:var(--teal2)">'+_c+' '+money(r.dry)+'</td>';
+      h+='<td style="padding:13px 16px;font-size:15px;font-weight:700;color:#12414E">'+r.label+'</td>';
+      h+='<td style="padding:13px 16px;text-align:right;font-size:16px;font-weight:700;color:#12414E">'+_c+' '+money(r.act)+'</td>';
+      h+='<td style="padding:13px 16px;text-align:center"><span style="background:'+pillC+';color:#fff;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700">'+r.pct.toFixed(1)+'%</span></td>';
+      h+='<td style="padding:13px 16px;text-align:right;font-size:16px;font-weight:600;color:var(--teal2)">'+_c+' '+money(r.dry)+'</td>';
       h+='</tr>';
     });
     var _pillTC=_piT>=95?"#2E8B6F":"#CB5F33";
     h+='<tr style="background:#12414E;color:#fff;font-weight:700">';
-    h+='<td style="padding:10px 14px">TOTAL</td>';
-    h+='<td style="padding:10px 14px;text-align:right">'+_c+' '+money(_aciFin+_acmFin)+'</td>';
-    h+='<td style="padding:10px 14px;text-align:center"><span style="background:'+_pillTC+';color:#fff;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700">'+_piT.toFixed(1)+'%</span></td>';
-    h+='<td style="padding:10px 14px;text-align:right">'+_c+' '+money(_dciFin+_dcmFin)+'</td>';
+    h+='<td style="padding:13px 16px;font-size:15px;letter-spacing:.5px">TOTAL</td>';
+    h+='<td style="padding:13px 16px;text-align:right;font-size:16px">'+_c+' '+money(_aciFin+_acmFin)+'</td>';
+    h+='<td style="padding:13px 16px;text-align:center"><span style="background:'+_pillTC+';color:#fff;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700">'+_piT.toFixed(1)+'%</span></td>';
+    h+='<td style="padding:13px 16px;text-align:right;font-size:16px">'+_c+' '+money(_dciFin+_dcmFin)+'</td>';
     h+='</tr></tbody></table>';
 
     h+='</div></div>';
@@ -1925,10 +1922,11 @@ function renderEditor(){
   /* dry cost override fields — wire directly to S */
   w.querySelectorAll("input[data-o][data-k='dcInst'],input[data-o][data-k='dcMat'],input[data-o][data-k='acInst'],input[data-o][data-k='acMat']").forEach(function(f){
     f.oninput=function(){
-      var v=f.value.trim();
-      S[f.dataset.k]=(v===''?'':num(v));
-      save(); renderEditor();
+      var v=f.value.replace(/[^0-9.]/g,'');
+      S[f.dataset.k]=(v===''?'':parseFloat(v)||0);
+      save();
     };
+    f.onblur=function(){renderEditor();};
   });
   var ic=document.getElementById("fIptCost");
   if(ic)ic.querySelectorAll("[data-o]").forEach(function(f){
@@ -2494,13 +2492,13 @@ function pageDryCost(pgm,n){
   var AVX=3.75, AVW=2.90;                // actual value  (right edge 6.65)
   var PLX=6.82, PLW=1.18;                // percent pill  (6.82 → 8.00)
   var DVX=8.40, DVW=3.90;                // dry value     (right edge 12.30)
-  var y0=1.62, hdrH=0.44, rowH=1.52, gap=0.16;
+  var y0=1.62, hdrH=0.60, rowH=1.52, gap=0.16;
 
   /* ── header band ─────────────────────────────────────────────── */
   h+=RECT(GX,y0,GW,hdrH,C.teal2,C.teal2,0.06,false);
-  h+=TX("COST HEAD",{x:LBX,y:y0,w:LBW,h:hdrH,f:"B",size:9,bold:true,color:C.white,spacing:1.6,valign:"middle"});
-  h+=TX("ACTUAL",   {x:AVX,y:y0,w:(PLX+PLW)-AVX,h:hdrH,f:"B",size:9,bold:true,color:C.white,spacing:1.6,align:"right",valign:"middle"});
-  h+=TX("DRY COST", {x:DVX,y:y0,w:DVW,h:hdrH,f:"B",size:9,bold:true,color:C.white,spacing:1.6,align:"right",valign:"middle"});
+  h+=TX("COST HEAD",{x:LBX,y:y0,w:LBW,h:hdrH,f:"B",size:13,bold:true,color:C.white,spacing:1.6,valign:"middle"});
+  h+=TX("ACTUAL",   {x:AVX,y:y0,w:(PLX+PLW)-AVX,h:hdrH,f:"B",size:13,bold:true,color:C.white,spacing:1.6,align:"right",valign:"middle"});
+  h+=TX("DRY COST", {x:DVX,y:y0,w:DVW,h:hdrH,f:"B",size:13,bold:true,color:C.white,spacing:1.6,align:"right",valign:"middle"});
 
   /* ── the two cost heads ──────────────────────────────────────── */
   var rows2=[
