@@ -604,6 +604,7 @@ function defaults(){return{
   pages:[
     {key:"p1", type:"cover", name:"Cover", on:true, eyebrow:"", title:"Cover"},
     {key:"p2", type:"exec", name:"Executive summary", on:true, eyebrow:"Executive summary", title:"Where the project stands this week"},
+    {key:"p2b",type:"drycost", name:"Dry cost summary", on:true, eyebrow:"Cost summary", title:"Dry Cost vs Actual Cost : {mon}-{year} W{week}"},
     {key:"p5", type:"stages", name:"Main work categories", on:true, eyebrow:"Main work categories", title:"MEP Progress across the Work Categories"},
     {key:"p6", type:"ipt", name:"IPT progress", on:true, eyebrow:"Activities completed", title:"IPT Progress"},
     {key:"p6b",type:"iptchart", name:"IPT planned vs actual", on:true, eyebrow:"IPT progress", title:"IPT - Planned vs Actual"},
@@ -630,7 +631,8 @@ var PAGE_TYPES=[
   {type:"proc",    name:"Procurement",            eyebrow:"Procurement",          title:"Procurement status"},
   {type:"look",    name:"Look ahead",             eyebrow:"Look ahead",           title:"Look ahead — next 4 weeks"},
   {type:"close",   name:"Closing summary",        eyebrow:"Closing summary",      title:"Summary and next steps"},
-  {type:"text",    name:"Free text page",         eyebrow:"",                     title:""}
+  {type:"text",    name:"Free text page",         eyebrow:"",                     title:""},
+  {type:"drycost", name:"Dry cost summary",        eyebrow:"Cost summary",         title:"Dry Cost vs Actual Cost : {mon}-{year} W{week}"}
 ];
 function typeName(t){var m=PAGE_TYPES.filter(function(x){return x.type===t;})[0];return m?m.name:t;}
 function defaultLabels(type){var t=PAGE_TYPES.filter(function(x){return x.type===type;})[0];return t?{eyebrow:t.eyebrow,title:t.title}:{eyebrow:"",title:""};} 
@@ -828,6 +830,14 @@ function migrate(){
     if(pg.on===undefined)pg.on=true;
     if("id" in pg)delete pg.id;
   });
+  // ensure drycost page exists after exec
+  var hasD2=(S.pages||[]).some(function(p){return p.type==="drycost";});
+  if(!hasD2&&S.pages){
+    var eiD=-1;
+    for(var _di=0;_di<S.pages.length;_di++){if(S.pages[_di].type==="exec"){eiD=_di;break;}}
+    var insD={key:newKey(),type:"drycost",name:"Dry cost summary",on:true,eyebrow:"Cost summary",title:"Dry Cost vs Actual Cost : {mon}-{year} W{week}"};
+    if(eiD>=0){S.pages.splice(eiD+1,0,insD);}else{S.pages.push(insD);}
+  }
 }
 var MONTHS=["January","February","March","April","May","June","July",
   "August","September","October","November","December"];
@@ -1399,6 +1409,36 @@ function renderEditor(){
       mepFromTrades().toFixed(1)+'% · dry cost '+cur()+' '+money(tradesCost())+'</span></div>'+
       '<div class="rowbtns"><label class="tog"><input type="checkbox" id="chkDryCost"'+
       (S.showDryCost!==false?" checked":"")+'> Show Installation / Materials / Dry cost total on the page</label></div></div></div></div>';
+  }
+
+  if(s==="drycost"){
+    h+='<div class="sec"><h2>Dry cost summary</h2><p class="hint">This page shows the installation and material dry costs for each discipline. Edit the values in the <strong>Executive summary → Disciplines</strong> section above — the figures here update automatically.</p>';
+    h+='<div class="card"><h3>Dry cost breakdown</h3>';
+    var trs=S.trades||[];
+    h+='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#1A6B6B;color:#fff">';
+    h+='<th style="padding:8px 12px;text-align:left">Discipline</th>';
+    h+='<th style="padding:8px 12px;text-align:right">Installation dry cost</th>';
+    h+='<th style="padding:8px 12px;text-align:right">Material dry cost</th>';
+    h+='<th style="padding:8px 12px;text-align:right">Total dry cost</th>';
+    h+='</tr></thead><tbody>';
+    var ti=0,tm=0;
+    trs.forEach(function(t,i){
+      var inst=num(t.inst),mat=num(t.mat),tot=inst+mat; ti+=inst; tm+=mat;
+      h+='<tr style="background:'+(i%2===0?"#F0F5F5":"#fff")+'">';
+      h+='<td style="padding:8px 12px;font-weight:700;color:#1A7A7A">'+esc(t.name||"")+'</td>';
+      h+='<td style="padding:8px 12px;text-align:right">'+cur()+" "+money(inst)+'</td>';
+      h+='<td style="padding:8px 12px;text-align:right">'+cur()+" "+money(mat)+'</td>';
+      h+='<td style="padding:8px 12px;text-align:right;font-weight:700;color:#1A7A7A">'+cur()+" "+money(tot)+'</td>';
+      h+='</tr>';
+    });
+    h+='<tr style="background:#1A7A7A;color:#fff;font-weight:700">';
+    h+='<td style="padding:8px 12px">TOTAL</td>';
+    h+='<td style="padding:8px 12px;text-align:right">'+cur()+" "+money(ti)+'</td>';
+    h+='<td style="padding:8px 12px;text-align:right">'+cur()+" "+money(tm)+'</td>';
+    h+='<td style="padding:8px 12px;text-align:right">'+cur()+" "+money(ti+tm)+'</td>';
+    h+='</tr></tbody></table>';
+    h+='<p class="hint" style="margin-top:10px">To edit these values go to <strong>Executive summary → Disciplines</strong> and update the Installation and Materials columns.</p>';
+    h+='</div></div>';
   }
 
   if(s==="stages"){
@@ -2366,6 +2406,52 @@ function pageMaterial(pgm,n){
   return shell(h+foot());
 }
 
+/* ---------- dry cost summary ---------- */
+function pageDryCost(pgm,n){
+  var h=head(pgm,n);
+  var cur2=cur();
+  var actInst=costTot("actual"), actMat=matTot("spent");
+  var dryInst=tradesCost("inst"), dryMat=tradesCost("mat");
+  var pctInst=dryInst?(actInst/dryInst*100):0;
+  var pctMat=dryMat?(actMat/dryMat*100):0;
+  var actTot=actInst+actMat, dryTot=dryInst+dryMat;
+  var pctTot=dryTot?(actTot/dryTot*100):0;
+  var cardX=0.6, cardW=12.13, cardH=1.9, gap=0.24, startY=1.72;
+
+  // Column header strip
+  h+=CARD(cardX,startY-0.44,cardW,0.40,C.teal2||"1A6B6B");
+  h+=TX("",{x:cardX+0.15,y:startY-0.40,w:2.7,h:0.32,f:"B",size:10,bold:true,color:C.white});
+  h+=TX("Actual",{x:cardX+3.0,y:startY-0.40,w:4.5,h:0.32,f:"B",size:10,bold:true,color:C.white,align:"center"});
+  h+=TX("Dry Cost",{x:cardX+7.6,y:startY-0.40,w:4.4,h:0.32,f:"B",size:10,bold:true,color:C.white,align:"center"});
+
+  var rows2=[
+    {label:"Installation",actual:actInst,pct:pctInst,dry:dryInst,col:C.teal},
+    {label:"Material Cost",actual:actMat,pct:pctMat,dry:dryMat,col:C.chart}
+  ];
+  rows2.forEach(function(r,i){
+    var ry=startY+i*(cardH+gap);
+    var pctCol=num(r.pct)>=95?C.green:C.terra;
+    h+=CARD(cardX,ry,cardW,cardH,C.white);
+    h+='<div style="'+BX(cardX+3.0,ry+0.1,0.025,cardH-0.2)+'background:#DDE7E5;border-radius:2px"></div>';
+    h+='<div style="'+BX(cardX+7.6,ry+0.1,0.025,cardH-0.2)+'background:#DDE7E5;border-radius:2px"></div>';
+    h+=TX(r.label,{x:cardX+0.15,y:ry+0.62,w:2.7,h:0.66,f:"H",size:18,bold:true,color:r.col});
+    h+=TX(cur2+" "+money(r.actual),{x:cardX+3.05,y:ry+0.16,w:4.45,h:0.62,f:"H",size:21,bold:true,color:C.slate,align:"center"});
+    h+=PILL(cardX+4.55,ry+0.90,1.45,0.42,pctCol);
+    h+=TX(r.pct.toFixed(1)+"%",{x:cardX+4.55,y:ry+0.91,w:1.45,h:0.40,f:"B",size:13,bold:true,color:C.white,align:"center"});
+    h+=TX(cur2+" "+money(r.dry),{x:cardX+7.65,y:ry+0.16,w:4.35,h:0.62,f:"H",size:21,bold:true,color:r.col,align:"center"});
+    h+=TX("dry cost",{x:cardX+7.65,y:ry+0.90,w:4.35,h:0.36,f:"B",size:11,color:C.muted||"7F9BA0",align:"center"});
+  });
+
+  var totY=startY+rows2.length*(cardH+gap)+0.08;
+  h+=CARD(cardX,totY,cardW,0.72,C.teal);
+  h+=TX("TOTAL",{x:cardX+0.15,y:totY+0.18,w:2.7,h:0.36,f:"H",size:13,bold:true,color:C.white});
+  h+=TX(cur2+" "+money(actTot),{x:cardX+3.05,y:totY+0.10,w:3.2,h:0.52,f:"H",size:14,bold:true,color:C.white,align:"center"});
+  h+=TX("["+pctTot.toFixed(1)+"%]",{x:cardX+5.6,y:totY+0.10,w:1.9,h:0.52,f:"B",size:12,color:C.white,align:"center"});
+  h+=TX(cur2+" "+money(dryTot),{x:cardX+7.65,y:totY+0.10,w:4.35,h:0.52,f:"H",size:14,bold:true,color:C.white,align:"center"});
+
+
+  return shell(h+foot());
+}
 /* ---------- 8 concerns ---------- */
 function pageRisk(pgm,n){
   var h=head(pgm,n);
@@ -2527,7 +2613,7 @@ function pageIptChart(pgm,n,part){
   return shell(h+foot());
 }
 
-var PREVIEW={cover:pageCover,exec:pageExec,stages:pageStages,
+var PREVIEW={cover:pageCover,exec:pageExec,stages:pageStages,drycost:pageDryCost,
   ipt:pageIpt,iptchart:pageIptChart,res:pageRes,material:pageMaterial,risk:pageRisk,proc:pageProc,look:pageLook,close:pageClose,text:pageText};
 
 function renderPreview(){
@@ -2857,6 +2943,36 @@ async function buildPptx(){
     whyCard("",matOver(),"item",S.showMatWhy!==false,pptPush(s),mg.whyTop);
     s.addText(tok(S.materialNote||""),{isTextBox:true,x:0.6,y:6.32,w:7.3,h:0.3,fontFace:"Calibri",fontSize:11,color:C.teal2,margin:0});
     ftr(s);
+  };
+  PPT.drycost=function(s,pgm,n){
+    var cur2=S.meta.currency||"AED";
+    var actInst=costTot("actual"), actMat=matTot("spent");
+    var dryInst=tradesCost("inst"), dryMat=tradesCost("mat");
+    var pctInst=dryInst?(actInst/dryInst*100):0;
+    var pctMat=dryMat?(actMat/dryMat*100):0;
+    var actTot=actInst+actMat, dryTot=dryInst+dryMat;
+    var pctTot=dryTot?(actTot/dryTot*100):0;
+    s.addTable([[
+      {text:"",options:{bold:true,color:"FFFFFF",fill:C.teal2||"1A6B6B"}},
+      {text:"Actual",options:{bold:true,color:"FFFFFF",fill:C.teal2||"1A6B6B",align:"center"}},
+      {text:"Dry Cost",options:{bold:true,color:"FFFFFF",fill:C.teal2||"1A6B6B",align:"center"}}
+    ]],{x:0.6,y:1.28,w:12.13,colW:[2.8,4.665,4.665],fontFace:FONT("B"),fontSize:11,rowH:0.38,border:{pt:0,color:C.teal2||"1A6B6B"}});
+    var rdata=[["Installation",actInst,pctInst,dryInst,C.teal],["Material Cost",actMat,pctMat,dryMat,C.chart]];
+    rdata.forEach(function(r,i){
+      var ry=1.72+i*2.14;
+      s.addShape(pptx.ShapeType.roundRect,{x:0.6,y:ry,w:12.13,h:1.9,fill:{color:"FFFFFF"},line:{color:"DDE7E5",pt:0.5},rounding:0.04});
+      T2(r[0],{x:0.78,y:ry+0.62,w:2.6,h:0.66,size:18,bold:true,color:r[4]});
+      T2(cur2+" "+money(r[1]),{x:3.5,y:ry+0.14,w:4.1,h:0.62,size:21,bold:true,color:C.slate,align:"center"});
+      T2("["+r[2].toFixed(1)+"%]",{x:3.5,y:ry+0.88,w:4.1,h:0.44,size:14,bold:true,color:r[2]>=95?C.green:C.terra,align:"center"});
+      T2(cur2+" "+money(r[3]),{x:7.8,y:ry+0.14,w:4.7,h:0.62,size:21,bold:true,color:r[4],align:"center"});
+      T2("dry cost",{x:7.8,y:ry+0.88,w:4.7,h:0.36,size:11,color:C.muted||"7F9BA0",align:"center"});
+    });
+    s.addTable([[
+      {text:"TOTAL",options:{bold:true,color:"FFFFFF",fill:C.teal}},
+      {text:cur2+" "+money(actTot)+"  ["+pctTot.toFixed(1)+"%]",options:{bold:true,color:"FFFFFF",fill:C.teal,align:"center"}},
+      {text:cur2+" "+money(dryTot),options:{bold:true,color:"FFFFFF",fill:C.teal,align:"center"}}
+    ]],{x:0.6,y:6.04,w:12.13,colW:[2.8,4.665,4.665],fontFace:FONT("H"),fontSize:13,rowH:0.56,border:{pt:0,color:C.teal}});
+    T2(tok("Actual install=manpower cost total. Material actual=budget spent. Dry cost=contract estimate."),{x:0.6,y:6.66,w:12.13,h:0.28,size:9,color:C.muted||"7F9BA0"});
   };
   PPT.risk=function(s,pgm,n){
   S.concerns.slice(0,6).forEach(function(c,i){
