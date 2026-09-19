@@ -1222,6 +1222,7 @@ function deleteProject(){
 var SECTIONS=[
   {id:"project",label:"Project Details"},
   {id:"exec",   label:"Executive summary"},
+  {id:"drycost",label:"Dry Cost vs Actual"},
   {id:"stages", label:"Main work categories"},
   {id:"ipt",    label:"IPT progress"},
   {id:"res",    label:"Manpower cost"},
@@ -1412,32 +1413,91 @@ function renderEditor(){
   }
 
   if(s==="drycost"){
-    h+='<div class="sec"><h2>Dry cost summary</h2><p class="hint">This page shows the installation and material dry costs for each discipline. Edit the values in the <strong>Executive summary → Disciplines</strong> section above — the figures here update automatically.</p>';
-    h+='<div class="card"><h3>Dry cost breakdown</h3>';
-    var trs=S.trades||[];
-    h+='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#1A6B6B;color:#fff">';
-    h+='<th style="padding:8px 12px;text-align:left">Discipline</th>';
-    h+='<th style="padding:8px 12px;text-align:right">Installation dry cost</th>';
-    h+='<th style="padding:8px 12px;text-align:right">Material dry cost</th>';
-    h+='<th style="padding:8px 12px;text-align:right">Total dry cost</th>';
+    /* helper: auto-calc fallbacks from existing data */
+    var _dci=tradesCost("inst"), _dcm=tradesCost("mat");
+    var _aci=costTot("actual"),   _acm=matTot("spent");
+    /* overrides stored directly on S */
+    var _dciFin=S.dcInst!==undefined&&S.dcInst!==''?num(S.dcInst):0;
+    var _dcmFin=S.dcMat!==undefined&&S.dcMat!==''?num(S.dcMat):0;
+    var _aciFin=S.acInst!==undefined&&S.acInst!==''?num(S.acInst):0;
+    var _acmFin=S.acMat!==undefined&&S.acMat!==''?num(S.acMat):0;
+    var _piI=_dciFin?(_aciFin/_dciFin*100):0;
+    var _piM=_dcmFin?(_acmFin/_dcmFin*100):0;
+    var _piT=(_dciFin+_dcmFin)?((_aciFin+_acmFin)/(_dciFin+_dcmFin)*100):0;
+    var _c=cur();
+
+    h+='<div class="sec"><h2>Dry Cost vs Actual Cost</h2>';
+    h+='<p class="hint">Enter your contract dry costs and actual costs here. Leave any field blank to auto-fill from Disciplines / Manpower / Material sections.</p>';
+
+    /* ── Dry Cost card ─────────────────────────────────────────── */
+    h+='<div class="card"><h3 style="color:var(--teal2)">Dry Cost (Contract Estimate)</h3>';
+    h+='<div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">';
+    h+='<div>';
+    h+='<label class="f">Installation Dry Cost ('+_c+')</label>';
+    h+='<input type="number" step="0.01" data-o data-k="dcInst" value="'+esc(S.dcInst||'')+'" placeholder="Enter amount">';
+    h+='</div>';
+    h+='<div>';
+    h+='<label class="f">Material Dry Cost ('+_c+')</label>';
+    h+='<input type="number" step="0.01" data-o data-k="dcMat" value="'+esc(S.dcMat||'')+'" placeholder="Enter amount">';
+    h+='</div>';
+    h+='</div>';
+    if(_dciFin||_dcmFin){
+      h+='<div style="margin-top:10px;padding:10px 14px;background:#F0F7F5;border-radius:6px;font-size:13px;color:var(--teal2)">';
+      h+='<strong>Total Dry Cost:</strong> '+_c+' '+money(_dciFin+_dcmFin);
+      h+='<span style="margin-left:20px;color:var(--slate)">Installation: '+_c+' '+money(_dciFin)+'  ·  Materials: '+_c+' '+money(_dcmFin)+'</span>';
+      h+='</div>';
+    }
+    h+='</div>';
+
+    /* ── Actual Cost card ──────────────────────────────────────── */
+    h+='<div class="card"><h3 style="color:var(--terra)">Actual Cost (To Date)</h3>';
+    h+='<div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">';
+    h+='<div>';
+    h+='<label class="f">Actual Installation Cost ('+_c+')</label>';
+    h+='<input type="number" step="0.01" data-o data-k="acInst" value="'+esc(S.acInst||'')+'" placeholder="Enter amount">';
+    h+='</div>';
+    h+='<div>';
+    h+='<label class="f">Actual Material Cost ('+_c+')</label>';
+    h+='<input type="number" step="0.01" data-o data-k="acMat" value="'+esc(S.acMat||'')+'" placeholder="Enter amount">';
+    h+='</div>';
+    h+='</div>';
+    if(_aciFin||_acmFin){
+      h+='<div style="margin-top:10px;padding:10px 14px;background:#FFF4EF;border-radius:6px;font-size:13px;color:var(--teal2)">';
+      h+='<strong>Total Actual Cost:</strong> '+_c+' '+money(_aciFin+_acmFin);
+      h+='<span style="margin-left:20px;color:var(--slate)">Installation: '+_c+' '+money(_aciFin)+'  ·  Materials: '+_c+' '+money(_acmFin)+'</span>';
+      h+='</div>';
+    }
+    h+='</div>';
+
+    /* ── Live summary table ────────────────────────────────────── */
+    h+='<div class="card"><h3>Cost Summary Preview</h3>';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#12414E;color:#fff">';
+    h+='<th style="padding:10px 14px;text-align:left">Cost Head</th>';
+    h+='<th style="padding:10px 14px;text-align:right">Actual Cost</th>';
+    h+='<th style="padding:10px 14px;text-align:center">% Used</th>';
+    h+='<th style="padding:10px 14px;text-align:right">Dry Cost</th>';
     h+='</tr></thead><tbody>';
-    var ti=0,tm=0;
-    trs.forEach(function(t,i){
-      var inst=num(t.inst),mat=num(t.mat),tot=inst+mat; ti+=inst; tm+=mat;
+    var _rows2=[
+      {label:"Installation",act:_aciFin,pct:_piI,dry:_dciFin},
+      {label:"Material Cost",act:_acmFin,pct:_piM,dry:_dcmFin}
+    ];
+    _rows2.forEach(function(r,i){
+      var pillC=r.pct>=95?"#2E8B6F":"#CB5F33";
       h+='<tr style="background:'+(i%2===0?"#F0F5F5":"#fff")+'">';
-      h+='<td style="padding:8px 12px;font-weight:700;color:#1A7A7A">'+esc(t.name||"")+'</td>';
-      h+='<td style="padding:8px 12px;text-align:right">'+cur()+" "+money(inst)+'</td>';
-      h+='<td style="padding:8px 12px;text-align:right">'+cur()+" "+money(mat)+'</td>';
-      h+='<td style="padding:8px 12px;text-align:right;font-weight:700;color:#1A7A7A">'+cur()+" "+money(tot)+'</td>';
+      h+='<td style="padding:10px 14px;font-weight:700;color:#12414E">'+r.label+'</td>';
+      h+='<td style="padding:10px 14px;text-align:right;font-weight:700">'+_c+' '+money(r.act)+'</td>';
+      h+='<td style="padding:10px 14px;text-align:center"><span style="background:'+pillC+';color:#fff;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700">'+r.pct.toFixed(1)+'%</span></td>';
+      h+='<td style="padding:10px 14px;text-align:right;color:var(--teal2)">'+_c+' '+money(r.dry)+'</td>';
       h+='</tr>';
     });
-    h+='<tr style="background:#1A7A7A;color:#fff;font-weight:700">';
-    h+='<td style="padding:8px 12px">TOTAL</td>';
-    h+='<td style="padding:8px 12px;text-align:right">'+cur()+" "+money(ti)+'</td>';
-    h+='<td style="padding:8px 12px;text-align:right">'+cur()+" "+money(tm)+'</td>';
-    h+='<td style="padding:8px 12px;text-align:right">'+cur()+" "+money(ti+tm)+'</td>';
+    var _pillTC=_piT>=95?"#2E8B6F":"#CB5F33";
+    h+='<tr style="background:#12414E;color:#fff;font-weight:700">';
+    h+='<td style="padding:10px 14px">TOTAL</td>';
+    h+='<td style="padding:10px 14px;text-align:right">'+_c+' '+money(_aciFin+_acmFin)+'</td>';
+    h+='<td style="padding:10px 14px;text-align:center"><span style="background:'+_pillTC+';color:#fff;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700">'+_piT.toFixed(1)+'%</span></td>';
+    h+='<td style="padding:10px 14px;text-align:right">'+_c+' '+money(_dciFin+_dcmFin)+'</td>';
     h+='</tr></tbody></table>';
-    h+='<p class="hint" style="margin-top:10px">To edit these values go to <strong>Executive summary → Disciplines</strong> and update the Installation and Materials columns.</p>';
+
     h+='</div></div>';
   }
 
@@ -1861,6 +1921,14 @@ function renderEditor(){
   if(md)md.querySelectorAll("[data-o]").forEach(function(f){
     f.oninput=function(){S.manDays=num(f.value);save();};
     f.onchange=function(){renderEditor();};
+  });
+  /* dry cost override fields — wire directly to S */
+  w.querySelectorAll("input[data-o][data-k='dcInst'],input[data-o][data-k='dcMat'],input[data-o][data-k='acInst'],input[data-o][data-k='acMat']").forEach(function(f){
+    f.oninput=function(){
+      var v=f.value.trim();
+      S[f.dataset.k]=(v===''?'':num(v));
+      save(); renderEditor();
+    };
   });
   var ic=document.getElementById("fIptCost");
   if(ic)ic.querySelectorAll("[data-o]").forEach(function(f){
@@ -2408,48 +2476,60 @@ function pageMaterial(pgm,n){
 
 /* ---------- dry cost summary ---------- */
 function pageDryCost(pgm,n){
-  var h=head(pgm,n);
-  var cur2=cur();
-  var actInst=costTot("actual"), actMat=matTot("spent");
-  var dryInst=tradesCost("inst"), dryMat=tradesCost("mat");
+  var h=head(pgm,n), cur2=cur();
+  /* use override values if entered in the Dry Cost section, else auto-calc */
+  var actInst=S.acInst!==undefined&&S.acInst!==''?num(S.acInst):costTot("actual");
+  var actMat =S.acMat!==undefined&&S.acMat!==''?num(S.acMat):matTot("spent");
+  var dryInst=S.dcInst!==undefined&&S.dcInst!==''?num(S.dcInst):tradesCost("inst");
+  var dryMat =S.dcMat!==undefined&&S.dcMat!==''?num(S.dcMat):tradesCost("mat");
   var pctInst=dryInst?(actInst/dryInst*100):0;
-  var pctMat=dryMat?(actMat/dryMat*100):0;
+  var pctMat =dryMat ?(actMat /dryMat *100):0;
   var actTot=actInst+actMat, dryTot=dryInst+dryMat;
   var pctTot=dryTot?(actTot/dryTot*100):0;
-  var cardX=0.6, cardW=12.13, cardH=1.9, gap=0.24, startY=1.72;
 
-  // Column header strip
-  h+=CARD(cardX,startY-0.44,cardW,0.40,C.teal2||"1A6B6B");
-  h+=TX("",{x:cardX+0.15,y:startY-0.40,w:2.7,h:0.32,f:"B",size:10,bold:true,color:C.white});
-  h+=TX("Actual",{x:cardX+3.0,y:startY-0.40,w:4.5,h:0.32,f:"B",size:10,bold:true,color:C.white,align:"center"});
-  h+=TX("Dry Cost",{x:cardX+7.6,y:startY-0.40,w:4.4,h:0.32,f:"B",size:10,bold:true,color:C.white,align:"center"});
+  /* one shared column grid, used by the header, both rows and the total */
+  var GX=0.60, GW=12.13;                 // panel
+  var LBX=0.95, LBW=2.45;                // label column
+  var RLA=3.55, RLB=8.15;                // vertical rules
+  var AVX=3.75, AVW=2.90;                // actual value  (right edge 6.65)
+  var PLX=6.82, PLW=1.18;                // percent pill  (6.82 → 8.00)
+  var DVX=8.40, DVW=3.90;                // dry value     (right edge 12.30)
+  var y0=1.62, hdrH=0.44, rowH=1.52, gap=0.16;
 
+  /* ── header band ─────────────────────────────────────────────── */
+  h+=RECT(GX,y0,GW,hdrH,C.teal2,C.teal2,0.06,false);
+  h+=TX("COST HEAD",{x:LBX,y:y0,w:LBW,h:hdrH,f:"B",size:9,bold:true,color:C.white,spacing:1.6,valign:"middle"});
+  h+=TX("ACTUAL",   {x:AVX,y:y0,w:(PLX+PLW)-AVX,h:hdrH,f:"B",size:9,bold:true,color:C.white,spacing:1.6,align:"right",valign:"middle"});
+  h+=TX("DRY COST", {x:DVX,y:y0,w:DVW,h:hdrH,f:"B",size:9,bold:true,color:C.white,spacing:1.6,align:"right",valign:"middle"});
+
+  /* ── the two cost heads ──────────────────────────────────────── */
   var rows2=[
-    {label:"Installation",actual:actInst,pct:pctInst,dry:dryInst,col:C.teal},
-    {label:"Material Cost",actual:actMat,pct:pctMat,dry:dryMat,col:C.chart}
+    {label:"Installation", actual:actInst, pct:pctInst, dry:dryInst, col:C.teal},
+    {label:"Material Cost",actual:actMat,  pct:pctMat,  dry:dryMat,  col:C.chart}
   ];
   rows2.forEach(function(r,i){
-    var ry=startY+i*(cardH+gap);
-    var pctCol=num(r.pct)>=95?C.green:C.terra;
-    h+=CARD(cardX,ry,cardW,cardH,C.white);
-    h+='<div style="'+BX(cardX+3.0,ry+0.1,0.025,cardH-0.2)+'background:#DDE7E5;border-radius:2px"></div>';
-    h+='<div style="'+BX(cardX+7.6,ry+0.1,0.025,cardH-0.2)+'background:#DDE7E5;border-radius:2px"></div>';
-    h+=TX(r.label,{x:cardX+0.15,y:ry+0.62,w:2.7,h:0.66,f:"H",size:18,bold:true,color:r.col});
-    h+=TX(cur2+" "+money(r.actual),{x:cardX+3.05,y:ry+0.16,w:4.45,h:0.62,f:"H",size:21,bold:true,color:C.slate,align:"center"});
-    h+=PILL(cardX+4.55,ry+0.90,1.45,0.42,pctCol);
-    h+=TX(r.pct.toFixed(1)+"%",{x:cardX+4.55,y:ry+0.91,w:1.45,h:0.40,f:"B",size:13,bold:true,color:C.white,align:"center"});
-    h+=TX(cur2+" "+money(r.dry),{x:cardX+7.65,y:ry+0.16,w:4.35,h:0.62,f:"H",size:21,bold:true,color:r.col,align:"center"});
-    h+=TX("dry cost",{x:cardX+7.65,y:ry+0.90,w:4.35,h:0.36,f:"B",size:11,color:C.muted||"7F9BA0",align:"center"});
+    var ry=y0+hdrH+gap+i*(rowH+gap);
+    var pc=r.pct>=95?C.green:C.terra;
+    h+=CARD(GX,ry,GW,rowH,C.white);
+    h+=RECT(GX,ry,0.10,rowH,r.col,null,0.06,false);                       // colour tab
+    h+=RECT(RLA,ry+0.22,0.012,rowH-0.44,C.sandd,null,0,false);            // rules
+    h+=RECT(RLB,ry+0.22,0.012,rowH-0.44,C.sandd,null,0,false);
+    h+=TX(r.label,{x:LBX,y:ry,w:LBW,h:rowH,f:"H",size:17,bold:true,color:C.teal,valign:"middle"});
+    h+=TX(cur2+" "+money(r.actual),{x:AVX,y:ry,w:AVW,h:rowH,f:"H",size:23,bold:true,color:C.teal,align:"right",valign:"middle"});
+    h+=PILL(PLX,ry+(rowH-0.44)/2,PLW,0.44,pc);
+    h+=TX(r.pct.toFixed(1)+"%",{x:PLX,y:ry+(rowH-0.40)/2,w:PLW,h:0.44,f:"B",size:12,bold:true,color:C.white,align:"center",valign:"middle"});
+    h+=TX(cur2+" "+money(r.dry),{x:DVX,y:ry,w:DVW,h:rowH,f:"H",size:23,bold:true,color:C.teal2,align:"right",valign:"middle"});
   });
 
-  var totY=startY+rows2.length*(cardH+gap)+0.08;
-  h+=CARD(cardX,totY,cardW,0.72,C.teal);
-  h+=TX("TOTAL",{x:cardX+0.15,y:totY+0.18,w:2.7,h:0.36,f:"H",size:13,bold:true,color:C.white});
-  h+=TX(cur2+" "+money(actTot),{x:cardX+3.05,y:totY+0.10,w:3.2,h:0.52,f:"H",size:14,bold:true,color:C.white,align:"center"});
-  h+=TX("["+pctTot.toFixed(1)+"%]",{x:cardX+5.6,y:totY+0.10,w:1.9,h:0.52,f:"B",size:12,color:C.white,align:"center"});
-  h+=TX(cur2+" "+money(dryTot),{x:cardX+7.65,y:totY+0.10,w:4.35,h:0.52,f:"H",size:14,bold:true,color:C.white,align:"center"});
-
-
+  /* ── total band ──────────────────────────────────────────────── */
+  var tY=y0+hdrH+gap+rows2.length*(rowH+gap)+0.10, tH=0.92;
+  var tc=pctTot>=95?C.green:C.terra;
+  h+=RECT(GX,tY,GW,tH,C.teal,C.teal,0.06,true);
+  h+=TX("TOTAL",{x:LBX,y:tY,w:LBW,h:tH,f:"B",size:11,bold:true,color:C.white,spacing:1.6,valign:"middle"});
+  h+=TX(cur2+" "+money(actTot),{x:AVX,y:tY,w:AVW,h:tH,f:"H",size:18,bold:true,color:C.white,align:"right",valign:"middle"});
+  h+=PILL(PLX,tY+(tH-0.44)/2,PLW,0.44,C.white);
+  h+=TX(pctTot.toFixed(1)+"%",{x:PLX,y:tY+(tH-0.40)/2,w:PLW,h:0.44,f:"B",size:12,bold:true,color:tc,align:"center",valign:"middle"});
+  h+=TX(cur2+" "+money(dryTot),{x:DVX,y:tY,w:DVW,h:tH,f:"H",size:18,bold:true,color:C.white,align:"right",valign:"middle"});
   return shell(h+foot());
 }
 /* ---------- 8 concerns ---------- */
@@ -2945,34 +3025,58 @@ async function buildPptx(){
     ftr(s);
   };
   PPT.drycost=function(s,pgm,n){
+    function T3(t,o){s.addText(t,{isTextBox:true,x:o.x,y:o.y,w:o.w,h:o.h,
+      fontFace:o.f==="H"?"Cambria":"Calibri",fontSize:o.size,bold:!!o.bold,color:o.color,
+      align:o.align||"left",charSpacing:o.spacing||0,margin:0,valign:"middle"});}
+    function band(x,y,w,hh,fill){s.addShape(p.ShapeType.roundRect,{x:x,y:y,w:w,h:hh,
+      rectRadius:0.06,fill:{color:fill},line:{color:fill,width:1}});}
+    function rule(x,y,hh){s.addShape(p.ShapeType.rect,{x:x,y:y,w:0.012,h:hh,
+      fill:{color:C.sandd},line:{color:C.sandd,width:0}});}
+    function pill(x,y,w,hh,fill){s.addShape(p.ShapeType.roundRect,{x:x,y:y,w:w,h:hh,
+      rectRadius:hh/2,fill:{color:fill},line:{color:fill,width:1}});}
+
     var cur2=S.meta.currency||"AED";
-    var actInst=costTot("actual"), actMat=matTot("spent");
-    var dryInst=tradesCost("inst"), dryMat=tradesCost("mat");
+    var actInst=S.acInst!==undefined&&S.acInst!==''?num(S.acInst):costTot("actual");
+    var actMat =S.acMat!==undefined&&S.acMat!==''?num(S.acMat):matTot("spent");
+    var dryInst=S.dcInst!==undefined&&S.dcInst!==''?num(S.dcInst):tradesCost("inst");
+    var dryMat =S.dcMat!==undefined&&S.dcMat!==''?num(S.dcMat):tradesCost("mat");
     var pctInst=dryInst?(actInst/dryInst*100):0;
-    var pctMat=dryMat?(actMat/dryMat*100):0;
+    var pctMat =dryMat ?(actMat /dryMat *100):0;
     var actTot=actInst+actMat, dryTot=dryInst+dryMat;
     var pctTot=dryTot?(actTot/dryTot*100):0;
-    s.addTable([[
-      {text:"",options:{bold:true,color:"FFFFFF",fill:C.teal2||"1A6B6B"}},
-      {text:"Actual",options:{bold:true,color:"FFFFFF",fill:C.teal2||"1A6B6B",align:"center"}},
-      {text:"Dry Cost",options:{bold:true,color:"FFFFFF",fill:C.teal2||"1A6B6B",align:"center"}}
-    ]],{x:0.6,y:1.28,w:12.13,colW:[2.8,4.665,4.665],fontFace:FONT("B"),fontSize:11,rowH:0.38,border:{pt:0,color:C.teal2||"1A6B6B"}});
-    var rdata=[["Installation",actInst,pctInst,dryInst,C.teal],["Material Cost",actMat,pctMat,dryMat,C.chart]];
-    rdata.forEach(function(r,i){
-      var ry=1.72+i*2.14;
-      s.addShape(pptx.ShapeType.roundRect,{x:0.6,y:ry,w:12.13,h:1.9,fill:{color:"FFFFFF"},line:{color:"DDE7E5",pt:0.5},rounding:0.04});
-      T2(r[0],{x:0.78,y:ry+0.62,w:2.6,h:0.66,size:18,bold:true,color:r[4]});
-      T2(cur2+" "+money(r[1]),{x:3.5,y:ry+0.14,w:4.1,h:0.62,size:21,bold:true,color:C.slate,align:"center"});
-      T2("["+r[2].toFixed(1)+"%]",{x:3.5,y:ry+0.88,w:4.1,h:0.44,size:14,bold:true,color:r[2]>=95?C.green:C.terra,align:"center"});
-      T2(cur2+" "+money(r[3]),{x:7.8,y:ry+0.14,w:4.7,h:0.62,size:21,bold:true,color:r[4],align:"center"});
-      T2("dry cost",{x:7.8,y:ry+0.88,w:4.7,h:0.36,size:11,color:C.muted||"7F9BA0",align:"center"});
+
+    var GX=0.60, GW=12.13, LBX=0.95, LBW=2.45;
+    var RLA=3.55, RLB=8.15, AVX=3.75, AVW=2.90;
+    var PLX=6.82, PLW=1.18, DVX=8.40, DVW=3.90;
+    var y0=1.62, hdrH=0.44, rowH=1.52, gap=0.16;
+
+    band(GX,y0,GW,hdrH,C.teal2);
+    T3("COST HEAD",{x:LBX,y:y0,w:LBW,h:hdrH,size:9,bold:true,color:C.white,spacing:1.6});
+    T3("ACTUAL",   {x:AVX,y:y0,w:(PLX+PLW)-AVX,h:hdrH,size:9,bold:true,color:C.white,spacing:1.6,align:"right"});
+    T3("DRY COST", {x:DVX,y:y0,w:DVW,h:hdrH,size:9,bold:true,color:C.white,spacing:1.6,align:"right"});
+
+    [["Installation",actInst,pctInst,dryInst,C.teal],
+     ["Material Cost",actMat,pctMat,dryMat,C.chart]].forEach(function(r,i){
+      var ry=y0+hdrH+gap+i*(rowH+gap), pc=r[2]>=95?C.green:C.terra;
+      card(s,GX,ry,GW,rowH,C.white);
+      s.addShape(p.ShapeType.roundRect,{x:GX,y:ry,w:0.10,h:rowH,rectRadius:0.06,
+        fill:{color:r[4]},line:{color:r[4],width:1}});
+      rule(RLA,ry+0.22,rowH-0.44); rule(RLB,ry+0.22,rowH-0.44);
+      T3(r[0],{x:LBX,y:ry,w:LBW,h:rowH,f:"H",size:17,bold:true,color:C.teal});
+      T3(cur2+" "+money(r[1]),{x:AVX,y:ry,w:AVW,h:rowH,f:"H",size:23,bold:true,color:C.teal,align:"right"});
+      pill(PLX,ry+(rowH-0.44)/2,PLW,0.44,pc);
+      T3(r[2].toFixed(1)+"%",{x:PLX,y:ry+(rowH-0.40)/2,w:PLW,h:0.44,size:12,bold:true,color:C.white,align:"center"});
+      T3(cur2+" "+money(r[3]),{x:DVX,y:ry,w:DVW,h:rowH,f:"H",size:23,bold:true,color:C.teal2,align:"right"});
     });
-    s.addTable([[
-      {text:"TOTAL",options:{bold:true,color:"FFFFFF",fill:C.teal}},
-      {text:cur2+" "+money(actTot)+"  ["+pctTot.toFixed(1)+"%]",options:{bold:true,color:"FFFFFF",fill:C.teal,align:"center"}},
-      {text:cur2+" "+money(dryTot),options:{bold:true,color:"FFFFFF",fill:C.teal,align:"center"}}
-    ]],{x:0.6,y:6.04,w:12.13,colW:[2.8,4.665,4.665],fontFace:FONT("H"),fontSize:13,rowH:0.56,border:{pt:0,color:C.teal}});
-    T2(tok("Actual install=manpower cost total. Material actual=budget spent. Dry cost=contract estimate."),{x:0.6,y:6.66,w:12.13,h:0.28,size:9,color:C.muted||"7F9BA0"});
+
+    var tY=y0+hdrH+gap+2*(rowH+gap)+0.10, tH=0.92, tc=pctTot>=95?C.green:C.terra;
+    band(GX,tY,GW,tH,C.teal);
+    T3("TOTAL",{x:LBX,y:tY,w:LBW,h:tH,size:11,bold:true,color:C.white,spacing:1.6});
+    T3(cur2+" "+money(actTot),{x:AVX,y:tY,w:AVW,h:tH,f:"H",size:18,bold:true,color:C.white,align:"right"});
+    pill(PLX,tY+(tH-0.44)/2,PLW,0.44,C.white);
+    T3(pctTot.toFixed(1)+"%",{x:PLX,y:tY+(tH-0.40)/2,w:PLW,h:0.44,size:12,bold:true,color:tc,align:"center"});
+    T3(cur2+" "+money(dryTot),{x:DVX,y:tY,w:DVW,h:tH,f:"H",size:18,bold:true,color:C.white,align:"right"});
+    ftr(s);
   };
   PPT.risk=function(s,pgm,n){
   S.concerns.slice(0,6).forEach(function(c,i){
